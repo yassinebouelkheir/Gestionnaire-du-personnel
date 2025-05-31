@@ -1,0 +1,113 @@
+using MySql.Data.MySqlClient;
+
+namespace Gestionnaire
+{
+    public class MySQLController
+    {
+        private readonly string connectionString =
+            $"Server={Config.mysqlServer};Database={Config.mysqlDatabase};Uid={Config.mysqlUsername};Pwd={Config.mysqlPassword};Port={Config.mysqlPort};";
+
+        public MySQLController()
+        {
+            Initialization();
+            InsertSelekton();
+        }
+
+        private void Initialization()
+        {
+            try
+            {
+                Methodes.PrintConsole(Config.sourceMySQL, "Connexion au base de données, Veuillez patientez s'il vous plait...");
+
+                using var controller = new MySqlConnection(connectionString);
+                controller.Open();
+                controller.Close();
+
+                Methodes.PrintConsole(Config.sourceMySQL, "Connexion réussie, Initialization du program...");
+            }
+            catch (Exception ex)
+            {
+                Methodes.PrintConsole(Config.sourceMySQL, ex.ToString(), true);
+            }
+        }
+
+        public void InsertSelekton()
+        {
+            try
+            {
+                Methodes.PrintConsole(Config.sourceMySQL, "Chargement des paramètres...");
+                using var controller = new MySqlConnection(connectionString);
+                controller.Open();
+                var cmd = new MySqlCommand(Config.skeleton, controller);
+                _ = cmd.ExecuteNonQuery();
+                controller.Close();
+            }
+            catch (Exception ex)
+            {
+                Methodes.PrintConsole(Config.sourceMySQL, ex.ToString(), true);
+            }
+        }
+
+        public void InsertData(string query)
+        {
+            try
+            {
+                using var controller = new MySqlConnection(connectionString);
+                controller.Open();
+                var cmd = new MySqlCommand(query, controller);
+                _ = cmd.ExecuteNonQuery();
+                controller.Close();
+                if (!Config.productionRun)
+                    Methodes.PrintConsole(Config.sourceMySQL, "La ligne a été insérée avec succès dans la base de données.");
+            }
+            catch (Exception ex)
+            {
+                Methodes.PrintConsole(Config.sourceMySQL, ex.ToString(), true);
+            }
+        }
+
+        public List<QueryResultRow> ReadData(string query, Dictionary<string, object> parameters)
+        {
+            var result = new List<QueryResultRow>();
+
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                Methodes.PrintConsole(Config.sourceMySQL, "Query cannot be null or empty", true);
+                return result;
+            }
+
+            try
+            {
+                using var connection = new MySqlConnection(connectionString);
+                connection.Open();
+                using var command = new MySqlCommand(query, connection);
+
+                if (parameters != null)
+                {
+                    foreach (var param in parameters)
+                    {
+                        _ = command.Parameters.AddWithValue(param.Key, param.Value ?? DBNull.Value);
+                    }
+                }
+
+                using var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    var row = new QueryResultRow();
+                    for (int i = 0; i < reader.FieldCount; i++)
+                    {
+                        string columnName = reader.GetName(i);
+                        string value = reader.IsDBNull(i) ? string.Empty : reader.GetString(i);
+                        row.Columns[columnName] = value;
+                    }
+                    result.Add(row);
+                }
+            }
+            catch (Exception ex)
+            {
+                Methodes.PrintConsole(Config.sourceMySQL, Config.productionRun ? "Database operation failed" : ex.ToString(), true);
+            }
+            return result;
+        }
+    }
+}
