@@ -20,7 +20,7 @@ namespace Gestionnaire
                 Methodes.PrintConsole(Config.sourceApplicationController, "6. Les membres en déplacements");
                 Methodes.PrintConsole(Config.sourceApplicationController, "7. Paramètres global du société\n");
                 if (ErrorMessage != "") Methodes.PrintConsole(Config.sourceApplicationController, "\n" + ErrorMessage); ErrorMessage = "";
-                Methodes.PrintConsole(Config.sourceApplicationController, "Votre choix (1-8): ");
+                Methodes.PrintConsole(Config.sourceApplicationController, "Votre choix (1-7): ");
                 string ServiceText = Console.ReadLine() ?? string.Empty;
                 _ = int.TryParse(ServiceText, out int ServiceNumber);
                 ErrorMessage = RunService(ServiceNumber);
@@ -67,7 +67,7 @@ namespace Gestionnaire
                     }
                 default:
                     {
-                        return "Error, Votre choix doit être entre 1 et 8, Veuillez réssayer.";
+                        return "Error, Votre choix doit être entre 1 et 7, Veuillez réssayer.";
                     }
             }
             return "";

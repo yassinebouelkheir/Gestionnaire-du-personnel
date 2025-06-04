@@ -12,6 +12,13 @@ namespace Gestionnaire
                 true  to run production mode and disable debug mode.
                 false to run staging mode and enable debug mode.
         */
+
+        public const int adminSettingsPIN = 123456;
+        /*
+            const int adminSettingsPIN
+
+            For security purposes, this section does not have documentation.
+        */
         
         public static int consoleDateTime = 2;
         /*
