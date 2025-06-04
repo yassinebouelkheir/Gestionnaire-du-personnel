@@ -12,28 +12,10 @@ namespace Gestionnaire
 
             Controller = new MySQLController();
 
-            Methodes.PrintConsole(Config.sourceProgram, "L'application est maintenant prête à être utilisée.");
+            Methodes.PrintConsole(Config.sourceProgram, "Connexion à votre compte personnel..");
+            Methodes.UserLogin();
 
-            bool isCredentialsValid = false;
-            int attemptCount = 0;
-
-            while (!isCredentialsValid && attemptCount < Config.maxLoginAttempts)
-            {
-                isCredentialsValid = Methodes.UserLogin();
-                attemptCount++;
-
-                if (!isCredentialsValid && attemptCount < Config.maxLoginAttempts)
-                {
-                    Methodes.PrintConsole(Config.sourceProgram, $"Tentative {attemptCount}/{Config.maxLoginAttempts} échouée. Veuillez réessayer.\n");
-                }
-            }
-
-            if (!isCredentialsValid)
-            {
-                Methodes.PrintConsole(Config.sourceProgram, "Nombre maximum de tentatives atteint. Fermeture de l'application.");
-                return;
-            }
-            Methodes.PrintConsole(Config.sourceProgram, "Connexion réussie, Veuillez Patientez...");
+            ApplicationController Program = new();
         }
     }
 }

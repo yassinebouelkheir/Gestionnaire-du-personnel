@@ -14,7 +14,14 @@ namespace Gestionnaire
                 {
                     Console.WriteLine($"[Gestionnaire {timestamp}]: {Config.errorMessage}");
                     Console.WriteLine($"[Gestionnaire {timestamp}]: Appuyez sur n'importe quelle touche pour quitter...");
-                    _ = Console.ReadKey();
+                    try
+                    {
+                        _ = Console.ReadKey();
+                    }
+                    catch (Exception)
+                    {
+                        Environment.Exit(0);
+                    }
                     Environment.Exit(0);
                 }
                 else Console.WriteLine($"[Gestionnaire {timestamp}]: {text}");
@@ -46,8 +53,31 @@ namespace Gestionnaire
                     return string.Empty;
             }
         }
+        public static void UserLogin()
+        {
+            bool isCredentialsValid = false;
+            int attemptCount = 0;
 
-        public static bool UserLogin()
+            while (!isCredentialsValid && attemptCount < Config.maxLoginAttempts) 
+            {
+                isCredentialsValid = CheckCredential();
+                attemptCount++;
+
+                if (!isCredentialsValid && attemptCount < Config.maxLoginAttempts)
+                {
+                    PrintConsole(Config.sourceProgram, $"Tentative {attemptCount}/{Config.maxLoginAttempts} échouée. Veuillez réessayer.\n");
+                }
+            }
+
+            if (!isCredentialsValid)
+            {
+                PrintConsole(Config.sourceProgram, "Nombre maximum de tentatives atteint. Fermeture de l'application.");
+                return;
+            }
+            PrintConsole(Config.sourceProgram, "Connexion réussie, Veuillez Patientez...");
+            Thread.Sleep(1700);
+        }
+        private static bool CheckCredential()
         {
             Console.WriteLine("Nom d'utilisateur : ");
             string username = Console.ReadLine() ?? string.Empty;
@@ -62,7 +92,7 @@ namespace Gestionnaire
             }
 
             try
-            {   
+            {
                 var parameters = new Dictionary<string, object>
                 {
                     { "@username", username }
@@ -73,21 +103,43 @@ namespace Gestionnaire
 
                 if (result.Count == 0 || result[0].Columns.Count == 0)
                 {
-                    PrintConsole(Config.sourceMethodes, "Identifiants incorrects.");
+                    PrintConsole(Config.sourceMethodes, "Identifiants introuvable.");
                     return false;
                 }
 
                 string storedHash = result[0]["password_hash"];
                 string salt = result[0]["salt"];
-                
-                bool isAuthenticated = PasswordHasher.VerifyPassword(password, storedHash, salt);
 
+                bool isAuthenticated = VerifyPassword(password, storedHash, salt);
+
+                /*
+
+                // @WARNING: DO NOT use these lines below in production run.
+
+                string text = "test";
+                byte[] saltBytes = RandomNumberGenerator.GetBytes(16);
+                salt = Convert.ToBase64String(saltBytes);
+
+                using var pbkdf2 = new Rfc2898DeriveBytes(
+                password: text,
+                salt: saltBytes,
+                iterations: 100000,
+                hashAlgorithm: HashAlgorithmName.SHA256);
+
+                byte[] hashBytes = pbkdf2.GetBytes(32);
+                string hash = Convert.ToBase64String(hashBytes);
+
+                Console.WriteLine($"Hash: {hash}");
+                Console.WriteLine($"Salt: {salt}");
+
+                */
+
+                if (!Config.productionRun) PrintConsole(Config.sourceMethodes, $"Match: {isAuthenticated}");
                 if (!isAuthenticated)
                 {
                     PrintConsole(Config.sourceMethodes, "Identifiants incorrects.");
                     return false;
                 }
-
                 return true;
             }
             catch (Exception ex)
@@ -96,7 +148,7 @@ namespace Gestionnaire
                 return false;
             }
         }
-        public static void Log(string logMessage)
+        private static void Log(string logMessage)
         {
             string logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "error_log.txt");
             File.AppendAllText(logPath, logMessage + "\n\n");
@@ -108,31 +160,7 @@ namespace Gestionnaire
                 Console.ResetColor();
             }
         }
-    }
-
-    class PasswordHasher // Source: DeepSeek
-    {
-        private const int SaltSize = 32;
-        private const int Iterations = 310000;
-        private const int HashSize = 32;
-        private static readonly HashAlgorithmName Algorithm = HashAlgorithmName.SHA512;
-
-        public static string HashPassword(string password, out string salt)
-        {
-            byte[] saltBytes = RandomNumberGenerator.GetBytes(SaltSize);
-            salt = Convert.ToBase64String(saltBytes);
-
-            using var pbkdf2 = new Rfc2898DeriveBytes(
-                password: password,
-                salt: saltBytes,
-                iterations: Iterations,
-                hashAlgorithm: Algorithm);
-
-            byte[] hashBytes = pbkdf2.GetBytes(HashSize);
-            return Convert.ToBase64String(hashBytes);
-        }
-
-        public static bool VerifyPassword(string password, string storedHash, string storedSalt)
+        private static bool VerifyPassword(string password, string storedHash, string storedSalt)
         {
             try
             {
@@ -142,13 +170,13 @@ namespace Gestionnaire
                 using var pbkdf2 = new Rfc2898DeriveBytes(
                     password: password,
                     salt: saltBytes,
-                    iterations: Iterations,
-                    hashAlgorithm: Algorithm);
+                    iterations: 100000,
+                    hashAlgorithm: HashAlgorithmName.SHA256);
 
-                byte[] computedHash = pbkdf2.GetBytes(HashSize);
+                byte[] computedHash = pbkdf2.GetBytes(32);
                 return CryptographicOperations.FixedTimeEquals(computedHash, hashBytes);
             }
-            catch
+            catch (Exception)
             {
                 return false;
             }

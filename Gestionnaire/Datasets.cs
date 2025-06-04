@@ -27,6 +27,7 @@ namespace Gestionnaire
         public bool IsAbsent { get; private set; }
         public string Reason { get; private set; } = "";
         public string JustificativeDocument { get; private set; } = "";
+        public bool isNull { get; private set; } = true;
 
         public Absence(int contractorId, int date = 0)
         {
@@ -50,31 +51,8 @@ namespace Gestionnaire
                 IsAbsent = true;
                 Reason = result[0]["reason"];
                 JustificativeDocument = result[0]["justificativeDocument"];
+                isNull = false;
             }
-        }
-    }
-
-    public class Presence : ContractorActivity
-    {
-        public bool IsPresent { get; private set; }
-
-        public Presence(int contractorId, int date = 0)
-        {
-            if (contractorId <= 0)
-                throw new ArgumentException("Invalid contractor ID", nameof(contractorId));
-
-            var parameters = new Dictionary<string, object> { { "@contractorId", contractorId } };
-            string query = "SELECT contractorId FROM Presences WHERE contractorId = @contractorId";
-
-            if (date != 0)
-            {
-                query += " AND date = @date";
-                parameters["@date"] = date;
-            }
-            query += " ORDER BY date DESC";
-
-            var result = FetchData(query, parameters);
-            IsPresent = result.Count > 0;
         }
     }
 
@@ -84,18 +62,16 @@ namespace Gestionnaire
         public int StartDate { get; private set; }
         public int EndDate { get; private set; }
         public string Reason { get; private set; } = "";
+        public bool isNull { get; private set; } = true;
 
         public PaidLeave(int contractorId, int date = 0)
         {
-            if (contractorId <= 0)
-                throw new ArgumentException("Invalid contractor ID", nameof(contractorId));
-
             var parameters = new Dictionary<string, object> { { "@contractorId", contractorId } };
             string query = "SELECT startDate, endDate, reason FROM PaidLeave WHERE contractorId = @contractorId";
 
             if (date != 0)
             {
-                query += " AND date = @date";
+                query += " AND (startDate >= @date && endDate <= @date)";
                 parameters["@date"] = date;
             }
             query += " ORDER BY date DESC";
@@ -109,6 +85,7 @@ namespace Gestionnaire
                 StartDate = sDate;
                 EndDate = eDate;
                 Reason = result[0]["reason"];
+                isNull = false;
             }
         }
     }
@@ -119,12 +96,10 @@ namespace Gestionnaire
         public string Type { get; private set; } = "";
         public string Address { get; private set; } = "";
         public string Trainer { get; private set; } = "";
+        public bool isNull { get; private set; } = true;
 
         public Training(int contractorId, int date = 0)
         {
-            if (contractorId <= 0)
-                throw new ArgumentException("Invalid contractor ID", nameof(contractorId));
-
             var parameters = new Dictionary<string, object> { { "@contractorId", contractorId } };
             string query = "SELECT type, address, formateur FROM Trainings WHERE contractorId = @contractorId";
 
@@ -142,6 +117,7 @@ namespace Gestionnaire
                 Type = result[0]["type"];
                 Address = result[0]["address"];
                 Trainer = result[0]["formateur"];
+                isNull = false;
             }
         }
     }
@@ -152,6 +128,7 @@ namespace Gestionnaire
         public string Type { get; private set; } = "";
         public string Address { get; private set; } = "";
         public string Description { get; private set; } = "";
+        public bool isNull { get; private set; } = true;
 
         public Mission(int contractorId, int date = 0)
         {
@@ -172,6 +149,7 @@ namespace Gestionnaire
                 Type = result[0]["type"];
                 Address = result[0]["address"];
                 Description = result[0]["description"];
+                isNull = false;
             }
         }
     }
@@ -183,7 +161,7 @@ namespace Gestionnaire
         public int EndDate { get; private set; }
         public string Address { get; private set; } = "";
         public string Description { get; private set; } = "";
-
+        public bool isNull { get; private set; } = true;
         public WorkTravel(int contractorId, int date = 0)
         {
             var parameters = new Dictionary<string, object> { { "@contractorId", contractorId } };
@@ -191,7 +169,7 @@ namespace Gestionnaire
 
             if (date != 0)
             {
-                query += " AND date = @date";
+                query += " AND (startDate >= @date && endDate <= @date)";
                 parameters["@date"] = date;
             }
             query += " ORDER BY date DESC";
@@ -206,6 +184,7 @@ namespace Gestionnaire
                 EndDate = eDate;
                 Address = result[0]["address"];
                 Description = result[0]["description"];
+                isNull = false;
             }
         }
     }
@@ -213,6 +192,10 @@ namespace Gestionnaire
     public class Contracts : ContractorActivity
     {
         public int ContractorId { get; private set; }
+        public string Fullname { get; private set; } = "";
+        public string GSM { get; private set; } = "";
+        public string Email { get; private set; } = "";
+        public string Address { get; private set; } = "";
         public int StartDate { get; private set; }
         public int EndDate { get; set; }
         public int Hours { get; private set; }
@@ -221,11 +204,12 @@ namespace Gestionnaire
         public string Locality { get; private set; } = "";
         public int ResponsableId { get; private set; }
         public string SignedDocument { get; private set; } = "";
+        public bool isNull { get; private set; } = true;
 
         public Contracts(string fullName)
         {
             var parameters = new Dictionary<string, object> { { "@name", fullName } };
-            string query = "SELECT contractorId, startDate, endDate, hours, salary, type, locality, responsable, signedDocuments FROM Contracts WHERE name = @name AND (endDate < CURRENT_TIMESTAMP) ORDER BY endDate DESC";
+            string query = "SELECT contractorId, fullname, gsm, email, address, startDate, endDate, hours, salary, type, locality, responsable, signedDocuments FROM Contracts WHERE fullName = @name AND (endDate < CURRENT_TIMESTAMP) ORDER BY endDate DESC";
 
             var result = FetchData(query, parameters);
             if (result.Count > 0)
@@ -239,6 +223,10 @@ namespace Gestionnaire
                 _ = int.TryParse(row["responsable"], out int resp);
 
                 ContractorId = id;
+                Fullname = row["fullname"];
+                GSM = row["gsm"];
+                Email = row["email"];
+                Address = row["address"];
                 StartDate = sDate;
                 EndDate = eDate;
                 Hours = hrs;
@@ -247,6 +235,7 @@ namespace Gestionnaire
                 Type = row["type"];
                 Locality = row["locality"];
                 SignedDocument = row["signedDocuments"];
+                isNull = false;
             }
         }
     }
