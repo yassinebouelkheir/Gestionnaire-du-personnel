@@ -149,6 +149,7 @@ namespace Gestionnaire
         public const string sourceProgram = "Program";
         public const string sourceDataset = "Dataset";
         public const string sourceMethodes = "Methodes";
+        public const string sourceApplicationController = "ApplicationController";
         public const string errorMessage = "Une erreur est survenue. L'opération n'a pas pu aboutir. Veuillez réessayer ultérieurement ou contacter notre support technique en cas de besoin.";
         public const int maxLoginAttempts = 3;
     }

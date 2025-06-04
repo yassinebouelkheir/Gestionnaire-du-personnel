@@ -209,7 +209,7 @@ namespace Gestionnaire
         public Contracts(string fullName)
         {
             var parameters = new Dictionary<string, object> { { "@name", fullName } };
-            string query = "SELECT contractorId, fullname, gsm, email, address, startDate, endDate, hours, salary, type, locality, responsable, signedDocuments FROM Contracts WHERE fullName = @name AND (endDate < CURRENT_TIMESTAMP) ORDER BY endDate DESC";
+            string query = "SELECT contractorId, fullname, gsm, email, address, startDate, endDate, hours, salary, type, locality, responsable, signedDocuments FROM Contracts WHERE fullName LIKE @name AND (endDate < CURRENT_TIMESTAMP) ORDER BY endDate DESC";
 
             var result = FetchData(query, parameters);
             if (result.Count > 0)
