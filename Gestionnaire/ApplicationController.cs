@@ -17,7 +17,7 @@ namespace Gestionnaire
                 Methodes.PrintConsole(Config.sourceApplicationController, "3. Les membres formation");
                 Methodes.PrintConsole(Config.sourceApplicationController, "4. Les membres en mission");
                 Methodes.PrintConsole(Config.sourceApplicationController, "5. Les membres en déplacements");
-                Methodes.PrintConsole(Config.sourceApplicationController, "6. Paramètres global du société\n");
+                Methodes.PrintConsole(Config.sourceApplicationController, "6. Paramètres global du société");
                 if (ErrorMessage != "") Methodes.PrintConsole(Config.sourceApplicationController, "\n" + ErrorMessage); ErrorMessage = "";
                 Methodes.PrintConsole(Config.sourceApplicationController, "Votre choix (1-6): ");
                 string serviceText = Console.ReadLine() ?? string.Empty;
@@ -27,10 +27,10 @@ namespace Gestionnaire
                 else ErrorMessage = "Erreur, Votre choix doit être entre 1 et 6, Veuillez réssayer s'il vous plaît...";
             }
         }
-        private static string RunService(int number)
+        private static string RunService(int service)
         {
             Console.WriteLine("\n");
-            switch (number)
+            switch (service)
             {
                 case 1:
                     {
@@ -326,6 +326,21 @@ namespace Gestionnaire
                     }
                 case 6:
                     {
+                        int codePINAttempts = 0;
+                        retryCodePIN:Methodes.PrintConsole(Config.sourceApplicationController, "Enter le code PIN requis pour accéder à cette option: ");
+                        string adminPanelPIN = Console.ReadLine() ?? string.Empty;
+                        codePINAttempts += 1;
+                        _ = int.TryParse(adminPanelPIN, out int ParsedPIN);
+                        if (Config.adminSettingsPIN == ParsedPIN) {
+                            AdministrationPanel();
+                            break;
+                        }
+                        if (codePINAttempts > 2) {
+                            ShowContinuePrompt();
+                            break;
+                        }
+                        Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, le code pin est incorrect, Veuillez réssayer s'il vous plaît...");
+                        goto retryCodePIN;
                         break;
                     }
                 default:
@@ -366,6 +381,56 @@ namespace Gestionnaire
                 unixdate = -1;
             }
         }
+        private static void AdministrationPanel()
+        {
+            string ErrorMessage = "";
+            while (true)
+            {
+                //Console.Clear();
+                Methodes.PrintConsole(Config.sourceApplicationController, "Bienvenue  à l'administration génerale!");
+                Methodes.PrintConsole(Config.sourceApplicationController, "S'il vous plaît, Entrer le numéro du service que vous voulez:");
+                Methodes.PrintConsole(Config.sourceApplicationController, "1. Gérer un contrat");
+                Methodes.PrintConsole(Config.sourceApplicationController, "2. Gérer les fonctions et leur barèmes");
+                Methodes.PrintConsole(Config.sourceApplicationController, "3. Ajouter/Supprimer des utilisateurs");
+                Methodes.PrintConsole(Config.sourceApplicationController, "4. Revenir à la menu principal\n");
+                if (ErrorMessage != "") Methodes.PrintConsole(Config.sourceApplicationController, ErrorMessage); ErrorMessage = "";
+                Methodes.PrintConsole(Config.sourceApplicationController, "Votre choix (1-4): ");
+                string serviceText = Console.ReadLine() ?? string.Empty;
+                bool prasedInput = int.TryParse(serviceText, out int serviceNumber);
+
+                if (prasedInput) {
+                    if (serviceNumber == 4)
+                        break;
+                    ErrorMessage = RunAdminService(serviceNumber);
+                    }
+                else ErrorMessage = "Erreur, Votre choix doit être entre 1 et 4, Veuillez réssayer s'il vous plaît...";
+            }
+        }
+        private static string RunAdminService(int service)
+        {
+            Console.WriteLine("\n");
+            switch (service)
+            {
+                case 1:
+                    {
+                        break;
+                    }
+                case 2:
+                    {
+                        break;
+                    }
+                case 3:
+                    {
+                        break;
+                    }
+                default:
+                    {
+                        return "Erreur, Votre choix doit être entre 1 et 4, Veuillez réssayer s'il vous plaît...";
+                    }
+            }
+            return "";
+        }
+
         private static void ShowContinuePrompt()
         {
             Methodes.PrintConsole(Config.sourceApplicationController, "Appuyez sur n'importe quelle touche pour revenir au menu principal...");
