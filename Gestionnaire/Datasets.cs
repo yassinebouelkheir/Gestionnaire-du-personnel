@@ -30,20 +30,24 @@ namespace Gestionnaire
         public List<QueryResultRow> ListAbsence;
         public string Reason { get; private set; } = "";
         public string JustificativeDocument { get; private set; } = "";
-        public bool isNull { get; private set; } = true;
+        public bool IsNull { get; private set; } = true;
 
-        public Absence(int contractorId, int date = 0)
+        public Absence(int contractorId, long date = -1)
         {
             var parameters = new Dictionary<string, object>
             {
-                { "@contractorId", contractorId }
+                { "@contractorId", contractorId },
             };
-
-            string query = "SELECT reason, justificativeDocument FROM Absences WHERE contractorId = @contractorId";
-            if (date != 0)
+            string query = $"SELECT reason, justificativeDocument, date FROM Absences WHERE contractorId = @contractorId";
+            if (date > 0)
             {
-                query += " AND date = @date";
-                parameters["@date"] = date;
+                var dateTime = DateTimeOffset.FromUnixTimeSeconds(date).UtcDateTime.Date;
+                var startOfDay = new DateTimeOffset(dateTime).ToUnixTimeSeconds();
+                var endOfDay = new DateTimeOffset(dateTime.AddDays(1)).ToUnixTimeSeconds() - 1;
+
+                query += " AND date BETWEEN @startOfDay AND @endOfDay";
+                parameters["@startOfDay"] = startOfDay;
+                parameters["@endOfDay"] = endOfDay;
             }
             query += " ORDER BY date DESC";
 
@@ -54,7 +58,7 @@ namespace Gestionnaire
                 IsAbsent = true;
                 Reason = ListAbsence[0]["reason"];
                 JustificativeDocument = ListAbsence[0]["justificativeDocument"];
-                isNull = false;
+                IsNull = false;
             }
         }
     }
@@ -212,7 +216,7 @@ namespace Gestionnaire
         public Contracts(string fullName)
         {
             var parameters = new Dictionary<string, object> { { "@name", fullName } };
-            string query = "SELECT contractorId, fullname, gsm, email, address, startDate, endDate, hours, salary, type, locality, responsable, signedDocuments FROM Contracts WHERE fullName LIKE @name AND (endDate < CURRENT_TIMESTAMP) ORDER BY endDate DESC";
+            string query = "SELECT contractorId, fullname, gsm, email, address, startDate, endDate, hours, salary, type, locality, responsableId, signedDocument FROM Contracts WHERE fullName LIKE @name ORDER BY endDate DESC";
 
             var result = FetchData(query, parameters);
             if (result.Count > 0)

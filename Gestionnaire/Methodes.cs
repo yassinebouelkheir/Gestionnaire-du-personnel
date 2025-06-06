@@ -41,17 +41,23 @@ namespace Gestionnaire
 
         public static string PrintDateTime()
         {
+            string outputString = "";
             switch (Config.consoleDateTime)
             {
                 case 1:
-                    return DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss");
+                    outputString = DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss");
+                    break;
                 case 2:
-                    return DateTime.Now.ToString("HH:mm:ss");
+                    outputString = DateTime.Now.ToString("HH:mm:ss");
+                    break;
                 case 3:
-                    return DateTime.Now.ToString("yyyy/MM/dd");
+                    outputString = DateTime.Now.ToString("yyyy/MM/dd");
+                    break;
                 default:
-                    return string.Empty;
+                    outputString = string.Empty;
+                    break;
             }
+            return outputString;
         }
         public static void UserLogin()
         {

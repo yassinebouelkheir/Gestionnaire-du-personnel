@@ -38,7 +38,8 @@ namespace Gestionnaire
                 Methodes.PrintConsole(Config.sourceMySQL, "Chargement des paramètres...");
                 using var controller = new MySqlConnection(connectionString);
                 controller.Open();
-                var cmd = new MySqlCommand(Config.skeleton, controller);
+                string skeleton = ((Config.productionRun) ? (Config.skeleton) : (Config.skeleton + " " + Config.debugScript));
+                var cmd = new MySqlCommand(skeleton, controller);
                 _ = cmd.ExecuteNonQuery();
                 controller.Close();
             }
@@ -97,7 +98,8 @@ namespace Gestionnaire
                     for (int i = 0; i < reader.FieldCount; i++)
                     {
                         string columnName = reader.GetName(i);
-                        string value = reader.IsDBNull(i) ? string.Empty : reader.GetString(i);
+                        object? rawValue = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                        string value = rawValue?.ToString() ?? string.Empty;
                         row.Columns[columnName] = value;
                     }
                     result.Add(row);
