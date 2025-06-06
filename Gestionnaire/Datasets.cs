@@ -27,7 +27,7 @@ namespace Gestionnaire
     public class Absence : ContractorActivity
     {
         public bool IsAbsent { get; private set; }
-        public List<QueryResultRow> ListAbsence;
+        public List<QueryResultRow> ListAbsence { get; private set; }
         public string Reason { get; private set; } = "";
         public string JustificativeDocument { get; private set; } = "";
         public bool IsNull { get; private set; } = true;
@@ -38,7 +38,7 @@ namespace Gestionnaire
             {
                 { "@contractorId", contractorId },
             };
-            string query = $"SELECT reason, justificativeDocument, date FROM Absences WHERE contractorId = @contractorId";
+            string query = "SELECT reason, justificativeDocument, date FROM Absences WHERE contractorId = @contractorId";
             if (date > 0)
             {
                 var dateTime = DateTimeOffset.FromUnixTimeSeconds(date).UtcDateTime.Date;
@@ -66,33 +66,49 @@ namespace Gestionnaire
     public class PaidLeave : ContractorActivity
     {
         public bool IsInPaidLeave { get; private set; }
-        public int StartDate { get; private set; }
-        public int EndDate { get; private set; }
+        public List<QueryResultRow> ListPaidLeave { get; private set; }
+        public string StartDate { get; private set; } = "";
+        public string EndDate { get; private set; } = "";
+        public long UnixStartDate { get; private set; }
+        public long UnixEndDate { get; private set; }
         public string Reason { get; private set; } = "";
-        public bool isNull { get; private set; } = true;
+        public bool IsNull { get; private set; } = true;
 
-        public PaidLeave(int contractorId, int date = 0)
+        public PaidLeave(int contractorId, long date = -1)
         {
-            var parameters = new Dictionary<string, object> { { "@contractorId", contractorId } };
+            var parameters = new Dictionary<string, object>
+            {
+                { "@contractorId", contractorId }
+            };
             string query = "SELECT startDate, endDate, reason FROM PaidLeave WHERE contractorId = @contractorId";
 
-            if (date != 0)
+            if (date > 0)
             {
-                query += " AND (startDate >= @date && endDate <= @date)";
-                parameters["@date"] = date;
-            }
-            query += " ORDER BY date DESC";
+                var dateTime = DateTimeOffset.FromUnixTimeSeconds(date).UtcDateTime.Date;
+                var startOfDay = new DateTimeOffset(dateTime).ToUnixTimeSeconds();
 
-            var result = FetchData(query, parameters);
-            if (result.Count > 0)
+                query += " AND endDate >= @startOfDay AND startDate <= @startOfDay";
+                parameters["@startOfDay"] = startOfDay;
+            }
+            query += " ORDER BY endDate DESC";
+
+            ListPaidLeave = FetchData(query, parameters);
+            if (ListPaidLeave.Count > 0)
             {
                 IsInPaidLeave = true;
-                _ = int.TryParse(result[0]["startDate"], out int sDate);
-                _ = int.TryParse(result[0]["endDate"], out int eDate);
-                StartDate = sDate;
-                EndDate = eDate;
-                Reason = result[0]["reason"];
-                isNull = false;
+                _ = long.TryParse(ListPaidLeave[0]["startDate"], out long sDate);
+                _ = long.TryParse(ListPaidLeave[0]["endDate"], out long eDate);
+
+                DateTime sdate = DateTimeOffset.FromUnixTimeSeconds(sDate).DateTime.Date;
+                DateTime edate = DateTimeOffset.FromUnixTimeSeconds(eDate).DateTime.Date;
+                StartDate = sdate.ToString("dd/MM/yyyy") ?? "";
+                EndDate = edate.ToString("dd/MM/yyyy") ?? "";
+
+                UnixStartDate = sDate;
+                UnixEndDate = eDate;
+
+                Reason = ListPaidLeave[0]["reason"];
+                IsNull = false;
             }
         }
     }
@@ -100,31 +116,40 @@ namespace Gestionnaire
     public class Training : ContractorActivity
     {
         public bool IsInTraining { get; private set; }
+        public List<QueryResultRow> ListTraining { get; private set; }
         public string Type { get; private set; } = "";
         public string Address { get; private set; } = "";
         public string Trainer { get; private set; } = "";
-        public bool isNull { get; private set; } = true;
+        public bool IsNull { get; private set; } = true;
 
-        public Training(int contractorId, int date = 0)
+        public Training(int contractorId, long date = -1)
         {
-            var parameters = new Dictionary<string, object> { { "@contractorId", contractorId } };
-            string query = "SELECT type, address, formateur FROM Trainings WHERE contractorId = @contractorId";
-
-            if (date != 0)
+            var parameters = new Dictionary<string, object>
             {
-                query += " AND date = @date";
-                parameters["@date"] = date;
+                { "@contractorId", contractorId }
+            };
+            string query = "SELECT type, address, formateur, date FROM Training WHERE contractorId = @contractorId";
+
+            if (date > 0)
+            {
+                var dateTime = DateTimeOffset.FromUnixTimeSeconds(date).UtcDateTime.Date;
+                var startOfDay = new DateTimeOffset(dateTime).ToUnixTimeSeconds();
+                var endOfDay = new DateTimeOffset(dateTime.AddDays(1)).ToUnixTimeSeconds() - 1;
+
+                query += " AND date BETWEEN @startOfDay AND @endOfDay";
+                parameters["@startOfDay"] = startOfDay;
+                parameters["@endOfDay"] = endOfDay;
             }
             query += " ORDER BY date DESC";
 
-            var result = FetchData(query, parameters);
-            if (result.Count > 0)
+            ListTraining = FetchData(query, parameters);
+            if (ListTraining.Count > 0)
             {
                 IsInTraining = true;
-                Type = result[0]["type"];
-                Address = result[0]["address"];
-                Trainer = result[0]["formateur"];
-                isNull = false;
+                Type = ListTraining[0]["type"];
+                Address = ListTraining[0]["address"];
+                Trainer = ListTraining[0]["formateur"];
+                IsNull = false;
             }
         }
     }
@@ -132,31 +157,37 @@ namespace Gestionnaire
     public class Mission : ContractorActivity
     {
         public bool IsInMission { get; private set; }
+        public List<QueryResultRow> ListMission { get; private set; }
         public string Type { get; private set; } = "";
         public string Address { get; private set; } = "";
         public string Description { get; private set; } = "";
-        public bool isNull { get; private set; } = true;
+        public bool IsNull { get; private set; } = true;
 
-        public Mission(int contractorId, int date = 0)
+        public Mission(int contractorId, long date = -1)
         {
             var parameters = new Dictionary<string, object> { { "@contractorId", contractorId } };
-            string query = "SELECT type, address, description FROM Mission WHERE contractorId = @contractorId";
+            string query = "SELECT type, address, description, date FROM Mission WHERE contractorId = @contractorId";
 
-            if (date != 0)
+            if (date > 0)
             {
-                query += " AND date = @date";
-                parameters["@date"] = date;
+                var dateTime = DateTimeOffset.FromUnixTimeSeconds(date).UtcDateTime.Date;
+                var startOfDay = new DateTimeOffset(dateTime).ToUnixTimeSeconds();
+                var endOfDay = new DateTimeOffset(dateTime.AddDays(1)).ToUnixTimeSeconds() - 1;
+
+                query += " AND date BETWEEN @startOfDay AND @endOfDay";
+                parameters["@startOfDay"] = startOfDay;
+                parameters["@endOfDay"] = endOfDay;
             }
             query += " ORDER BY date DESC";
 
-            var result = FetchData(query, parameters);
-            if (result.Count > 0)
+            ListMission = FetchData(query, parameters);
+            if (ListMission.Count > 0)
             {
                 IsInMission = true;
-                Type = result[0]["type"];
-                Address = result[0]["address"];
-                Description = result[0]["description"];
-                isNull = false;
+                Type = ListMission[0]["type"];
+                Address = ListMission[0]["address"];
+                Description = ListMission[0]["description"];
+                IsNull = false;
             }
         }
     }
@@ -164,34 +195,48 @@ namespace Gestionnaire
     public class WorkTravel : ContractorActivity
     {
         public bool IsInWorkTravel { get; private set; }
-        public int StartDate { get; private set; }
-        public int EndDate { get; private set; }
+        public List<QueryResultRow> ListWorkTravel { get; private set; }
+        public string StartDate { get; private set; } = "";
+        public string EndDate { get; private set; } = "";
+        public long UnixStartDate { get; private set; }
+        public long UnixEndDate { get; private set; }
         public string Address { get; private set; } = "";
         public string Description { get; private set; } = "";
-        public bool isNull { get; private set; } = true;
-        public WorkTravel(int contractorId, int date = 0)
+        public bool IsNull { get; private set; } = true;
+
+        public WorkTravel(int contractorId, long date = -1)
         {
             var parameters = new Dictionary<string, object> { { "@contractorId", contractorId } };
             string query = "SELECT startDate, endDate, address, description FROM WorkTravel WHERE contractorId = @contractorId";
 
-            if (date != 0)
+            if (date > 0)
             {
-                query += " AND (startDate >= @date && endDate <= @date)";
-                parameters["@date"] = date;
-            }
-            query += " ORDER BY date DESC";
+                var dateTime = DateTimeOffset.FromUnixTimeSeconds(date).UtcDateTime.Date;
+                var startOfDay = new DateTimeOffset(dateTime).ToUnixTimeSeconds();
 
-            var result = FetchData(query, parameters);
-            if (result.Count > 0)
+                query += " AND endDate >= @startOfDay AND startDate <= @startOfDay";
+                parameters["@startOfDay"] = startOfDay;
+            }
+            query += " ORDER BY endDate DESC";
+
+            ListWorkTravel = FetchData(query, parameters);
+            if (ListWorkTravel.Count > 0)
             {
                 IsInWorkTravel = true;
-                _ = int.TryParse(result[0]["startDate"], out int sDate);
-                _ = int.TryParse(result[0]["endDate"], out int eDate);
-                StartDate = sDate;
-                EndDate = eDate;
-                Address = result[0]["address"];
-                Description = result[0]["description"];
-                isNull = false;
+                _ = long.TryParse(ListWorkTravel[0]["startDate"], out long sDate);
+                _ = long.TryParse(ListWorkTravel[0]["endDate"], out long eDate);
+
+                DateTime sdate = DateTimeOffset.FromUnixTimeSeconds(sDate).DateTime.Date;
+                DateTime edate = DateTimeOffset.FromUnixTimeSeconds(eDate).DateTime.Date;
+                StartDate = sdate.ToString("dd/MM/yyyy");
+                EndDate = edate.ToString("dd/MM/yyyy");
+
+                UnixStartDate = sDate;
+                UnixEndDate = eDate;
+
+                Address = ListWorkTravel[0]["address"];
+                Description = ListWorkTravel[0]["description"];
+                IsNull = false;
             }
         }
     }
