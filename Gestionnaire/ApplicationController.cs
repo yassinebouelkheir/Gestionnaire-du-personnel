@@ -391,8 +391,9 @@ namespace Gestionnaire
                 Methodes.PrintConsole(Config.sourceApplicationController, "S'il vous plaît, Entrer le numéro du service que vous voulez:");
                 Methodes.PrintConsole(Config.sourceApplicationController, "1. Gérer un contrat");
                 Methodes.PrintConsole(Config.sourceApplicationController, "2. Gérer les fonctions et leur barèmes");
-                Methodes.PrintConsole(Config.sourceApplicationController, "3. Ajouter/Supprimer des utilisateurs");
-                Methodes.PrintConsole(Config.sourceApplicationController, "4. Revenir à la menu principal\n");
+                Methodes.PrintConsole(Config.sourceApplicationController, "3. Gérer les membres de personnel");
+                Methodes.PrintConsole(Config.sourceApplicationController, "4. Ajouter/Supprimer des utilisateurs");
+                Methodes.PrintConsole(Config.sourceApplicationController, "5. Revenir à la menu principal\n");
                 if (ErrorMessage != "") Methodes.PrintConsole(Config.sourceApplicationController, ErrorMessage); ErrorMessage = "";
                 Methodes.PrintConsole(Config.sourceApplicationController, "Votre choix (1-4): ");
                 string serviceText = Console.ReadLine() ?? string.Empty;
@@ -420,6 +421,10 @@ namespace Gestionnaire
                         break;
                     }
                 case 3:
+                    {
+                        break;
+                    }
+                case 4:
                     {
                         break;
                     }
