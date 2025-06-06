@@ -1,3 +1,5 @@
+using Microsoft.VisualBasic;
+
 namespace Gestionnaire
 {
     public class QueryResultRow
@@ -25,6 +27,7 @@ namespace Gestionnaire
     public class Absence : ContractorActivity
     {
         public bool IsAbsent { get; private set; }
+        public List<QueryResultRow> ListAbsence;
         public string Reason { get; private set; } = "";
         public string JustificativeDocument { get; private set; } = "";
         public bool isNull { get; private set; } = true;
@@ -44,13 +47,13 @@ namespace Gestionnaire
             }
             query += " ORDER BY date DESC";
 
-            var result = FetchData(query, parameters);
+            ListAbsence = FetchData(query, parameters);
 
-            if (result.Count > 0)
+            if (ListAbsence.Count > 0)
             {
                 IsAbsent = true;
-                Reason = result[0]["reason"];
-                JustificativeDocument = result[0]["justificativeDocument"];
+                Reason = ListAbsence[0]["reason"];
+                JustificativeDocument = ListAbsence[0]["justificativeDocument"];
                 isNull = false;
             }
         }
