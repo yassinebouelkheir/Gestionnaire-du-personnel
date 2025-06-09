@@ -103,20 +103,22 @@ namespace Gestionnaire
             `address` text NOT NULL,
             `startDate` int(11) NOT NULL,
             `endDate` int(11) DEFAULT NULL,
-            `hours` int(11) DEFAULT NULL,
+            `hours` int(11) NOT NULL DEFAULT 8,
             `salary` double NOT NULL,
-            `type` varchar(32) NOT NULL,
-            `locality` varchar(64) NOT NULL,
-            `responsableId` int(11) NOT NULL,
-            `signedDocument` varchar(128) NOT NULL,
+            `fonction` int(11) NOT NULL,
             PRIMARY KEY (`contractorId`)
+            );
+
+            CREATE TABLE IF NOT EXISTS `Fonctions` (
+            `id` int(11) NOT NULL AUTO_INCREMENT,
+            `authorityLevel` int(11) NOT NULL,
+            `name` varchar(32) NOT NULL,
+            PRIMARY KEY (`id`)
             );
 
             CREATE TABLE IF NOT EXISTS `Mission` (
             `id` int(11) NOT NULL AUTO_INCREMENT,
             `contractorId` int(11) NOT NULL,
-            `type` varchar(128) NOT NULL,
-            `address` varchar(256) NOT NULL,
             `description` varchar(256) NOT NULL,
             `date` int(11) NOT NULL,
             PRIMARY KEY (`id`)
@@ -141,7 +143,7 @@ namespace Gestionnaire
             PRIMARY KEY (`id`)
             );
 
-            CREATE TABLE IF NOT EXISTS `Utilisateurs` (
+            CREATE TABLE IF NOT EXISTS `Users` (
             `id` int(11) NOT NULL AUTO_INCREMENT,
             `username` varchar(32) NOT NULL,
             `password_hash` varchar(256) NOT NULL,
@@ -157,17 +159,31 @@ namespace Gestionnaire
             `address` varchar(128) NOT NULL,
             `description` varchar(128) NOT NULL,
             PRIMARY KEY (`id`)
-            );
-            ";
+            );";
 
         public const string debugScript = @"
-            INSERT IGNORE INTO `Absences` (`id`, `contractorId`, `date`, `reason`, `justificativeDocument`) VALUES(2, 1, 1748799000, NULL, NULL);
-            INSERT IGNORE INTO `Contracts` (`contractorId`, `fullname`, `gsm`, `email`, `address`, `startDate`, `endDate`, `hours`, `salary`, `type`, `locality`, `responsableId`, `signedDocument`) VALUES(1, 'test', '0000000000', 'test@gmail.com', 'test, 10000 test', 1749217847, NULL, NULL, 3000, 'CDI', 'test, test', -1, 'test');
-            INSERT IGNORE INTO `Mission` (`id`, `contractorId`, `type`, `address`, `description`, `date`) VALUES(1, 1, 'Envoi exceptionel', 'test, test', 'test', 1749217847);
-            INSERT IGNORE INTO `PaidLeave` (`Id`, `contractorId`, `startDate`, `endDate`, `reason`) VALUES(1, 1, 1749304247, 1749390647, 'test');
-            INSERT IGNORE INTO `WorkTravel` (`id`, `contractorId`, `startDate`, `endDate`, `address`, `description`) VALUES(1, 1, 1749563447, 1749649847, 'test, test', 'test description');
-            INSERT IGNORE INTO `Utilisateurs` (`id`, `username`, `password_hash`, `salt`) VALUES(1, 'admin', '24euMIjLiutdFt52gv/nIsNi8OKtyMcHEGH3WnYfvTI=', '6GiAEASB7JnuM3SjrG6Hag==');
-            INSERT IGNORE INTO `Training` (`id`, `contractorId`, `type`, `address`, `formateur`, `date`) VALUES(1, 1, 'Formation en test', 'test, test', 'test s.r.l', 1749477047);
+            INSERT IGNORE INTO `Contracts` (`contractorId`, `fullname`, `gsm`, `email`, `address`, `startDate`, `endDate`, `hours`, `salary`, `fonction`) VALUES
+            (1, 'test', '0000000000', 'test@gmail.com', 'test', 1749217847, NULL, 40, 3000, 3);
+
+            INSERT IGNORE INTO `Absences` (`id`, `contractorId`, `date`, `reason`, `justificativeDocument`) VALUES
+            (1, 1, 1748799000, NULL, NULL);
+
+            INSERT IGNORE INTO `Fonctions` (`id`, `authorityLevel`, `name`) VALUES
+            (1, 1, 'Consultant'),
+            (2, 2, 'Ouvrier'),
+            (3, 3, 'Employé');
+
+            INSERT IGNORE INTO `Mission` (`contractorId`, `description`, `date`) VALUES
+            (1, 'Envoi exceptionel', 1749217847);
+
+            INSERT IGNORE INTO `PaidLeave` (`Id`, `contractorId`, `startDate`, `endDate`, `reason`) VALUES
+            (1, 1, 1749254400, 1749772800, 'test');
+
+            INSERT IGNORE INTO `Users` (`id`, `username`, `password_hash`, `salt`) VALUES
+            (1, 'admin', '24euMIjLiutdFt52gv/nIsNi8OKtyMcHEGH3WnYfvTI=', '6GiAEASB7JnuM3SjrG6Hag==');
+
+            INSERT IGNORE INTO `WorkTravel` (`id`, `contractorId`, `startDate`, `endDate`, `address`, `description`) VALUES
+            (1, 1, 1749513600, 1749772800, 'test, test', 'test description');
             ";
         /*
             const string skeleton
@@ -175,7 +191,7 @@ namespace Gestionnaire
 
             This constant string contains the structure of the application mysql database.
             Set values:
-                SQL Code (CREATE TABLE)
+                SQL Code (CREATE TABLE IF NOT EXISTS)
         */
 
         // Program constants
@@ -184,6 +200,6 @@ namespace Gestionnaire
         public const string sourceDataset = "Dataset";
         public const string sourceMethodes = "Methodes";
         public const string sourceApplicationController = "ApplicationController";
-        public const string errorMessage = "Une erreur est survenue. L'opération n'a pas pu aboutir. Veuillez réessayer ultérieurement ou contacter notre support technique en cas de besoin.";
+        public const string errorMessage = "Un erreur est survenue. L'opération n'a pas pu aboutir. Veuillez réessayer ultérieurement ou contacter notre support technique en cas de besoin.";
     }
 }

@@ -49,21 +49,27 @@ namespace Gestionnaire
             }
         }
 
-        public void InsertData(string query)
+        public void InsertData(string query, Dictionary<string, object> parameters)
         {
-            try
+            using var controller = new MySqlConnection(connectionString);
+            controller.Open();
+            var command = new MySqlCommand(query, controller);
+
+            if (parameters != null)
             {
-                using var controller = new MySqlConnection(connectionString);
-                controller.Open();
-                var cmd = new MySqlCommand(query, controller);
-                _ = cmd.ExecuteNonQuery();
-                controller.Close();
-                if (!Config.productionRun)
-                    Methodes.PrintConsole(Config.sourceMySQL, "La ligne a été insérée avec succès dans la base de données.");
+                foreach (var param in parameters)
+                {
+                    _ = command.Parameters.AddWithValue(param.Key, param.Value ?? DBNull.Value);
+                }
             }
-            catch (Exception ex)
+
+            int queryState = command.ExecuteNonQuery();
+            controller.Close();
+
+            if (!Config.productionRun)
             {
-                Methodes.PrintConsole(Config.sourceMySQL, ex.ToString(), true);
+                if (queryState == 1) Methodes.PrintConsole(Config.sourceMySQL, "La ligne a été insérée/modifié dans la base de données.");
+                else Methodes.PrintConsole(Config.sourceMySQL, "La ligne n'a pas été insérée/modifié.");   
             }
         }
 
@@ -77,37 +83,30 @@ namespace Gestionnaire
                 return result;
             }
 
-            try
+            using var connection = new MySqlConnection(connectionString);
+            connection.Open();
+            using var command = new MySqlCommand(query, connection);
+
+            if (parameters != null)
             {
-                using var connection = new MySqlConnection(connectionString);
-                connection.Open();
-                using var command = new MySqlCommand(query, connection);
-
-                if (parameters != null)
+                foreach (var param in parameters)
                 {
-                    foreach (var param in parameters)
-                    {
-                        _ = command.Parameters.AddWithValue(param.Key, param.Value ?? DBNull.Value);
-                    }
-                }
-
-                using var reader = command.ExecuteReader();
-                while (reader.Read())
-                {
-                    var row = new QueryResultRow();
-                    for (int i = 0; i < reader.FieldCount; i++)
-                    {
-                        string columnName = reader.GetName(i);
-                        object? rawValue = reader.IsDBNull(i) ? null : reader.GetValue(i);
-                        string value = rawValue?.ToString() ?? string.Empty;
-                        row.Columns[columnName] = value;
-                    }
-                    result.Add(row);
+                    _ = command.Parameters.AddWithValue(param.Key, param.Value ?? DBNull.Value);
                 }
             }
-            catch (Exception ex)
+
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
             {
-                Methodes.PrintConsole(Config.sourceMySQL, Config.productionRun ? "Database operation failed" : ex.ToString(), true);
+                var row = new QueryResultRow();
+                for (int i = 0; i < reader.FieldCount; i++)
+                {
+                    string columnName = reader.GetName(i);
+                    object? rawValue = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                    string value = rawValue?.ToString() ?? string.Empty;
+                    row.Columns[columnName] = value;
+                }
+                result.Add(row);
             }
             return result;
         }

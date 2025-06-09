@@ -32,13 +32,38 @@ namespace Gestionnaire
                 Console.WriteLine(logMessage);
             }
 
-            if (exitMessage) 
+            if (exitMessage)
             {
                 string logMessage = $"[Gestionnaire::{source} {timestamp}]: {text}";
                 Log(logMessage);
             }
         }
+        public static string ReadUserInput(string text, bool ispassword = false)
+        {
+            string timestamp = string.IsNullOrEmpty(PrintDateTime()) ? "" : PrintDateTime();
+            if(Config.productionRun) Console.Write($"\n[Gestionnaire {timestamp}]: {text}");
+            else Console.Write($"\n[Gestionnaire::Methodes {timestamp}]: {text}");
 
+            if (!ispassword) return Console.ReadLine() ?? "";
+
+            var input = "";
+            ConsoleKeyInfo key;
+            while ((key = Console.ReadKey(true)).Key != ConsoleKey.Enter)
+            {
+                if (key.Key == ConsoleKey.Backspace && input.Length > 0)
+                {
+                    input = input[..^1];
+                    Console.Write("\b \b");
+                }
+                else if (!char.IsControl(key.KeyChar))
+                {
+                    input += key.KeyChar;
+                    Console.Write("*");
+                }
+            }
+            Console.WriteLine();
+            return input;
+        }
         public static string PrintDateTime()
         {
             string outputString = "";
@@ -64,7 +89,7 @@ namespace Gestionnaire
             bool isCredentialsValid = false;
             int attemptCount = 0;
 
-            while (!isCredentialsValid && attemptCount < Config.maxLoginAttempts) 
+            while (!isCredentialsValid && attemptCount < Config.maxLoginAttempts)
             {
                 isCredentialsValid = CheckCredential();
                 attemptCount++;
@@ -80,16 +105,15 @@ namespace Gestionnaire
                 PrintConsole(Config.sourceProgram, "Nombre maximum de tentatives atteint. Fermeture de l'application.");
                 return;
             }
-            PrintConsole(Config.sourceProgram, "Connexion réussie, Veuillez Patientez...");
+            PrintConsole(Config.sourceProgram, "Connexion réussie, Veuillez Patientez...\n");
+            PrintConsole(Config.sourceApplicationController, "Bienvenue au Gestionnaire du personnel v1.0");
             Thread.Sleep(1700);
         }
         private static bool CheckCredential()
         {
-            Console.WriteLine("Nom d'utilisateur : ");
-            string username = Console.ReadLine() ?? string.Empty;
-
-            Console.WriteLine("Mot de passe : ");
-            string password = Console.ReadLine() ?? string.Empty;
+            string username = Methodes.ReadUserInput("Nom d'utilisateur : ") ?? string.Empty;
+            string password = Methodes.ReadUserInput("Mot de passe : ", true) ?? string.Empty;
+            Thread.Sleep(1000);
 
             if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
             {
@@ -104,7 +128,7 @@ namespace Gestionnaire
                     { "@username", username }
                 };
 
-                string query = "SELECT password_hash, salt FROM Utilisateurs WHERE username = @username LIMIT 1";
+                string query = "SELECT password_hash, salt FROM Users WHERE username = @username LIMIT 1";
                 var result = Program.Controller.ReadData(query, parameters);
 
                 if (result.Count == 0 || result[0].Columns.Count == 0)
@@ -183,6 +207,22 @@ namespace Gestionnaire
                 return CryptographicOperations.FixedTimeEquals(computedHash, hashBytes);
             }
             catch (Exception)
+            {
+                return false;
+            }
+        }
+        public static bool IsNumeric(string value)
+        {
+            return int.TryParse(value, out int result) && result > 0;
+        }
+        public static bool IsEmail(string email)
+        {
+            try
+            {
+                var addr = new System.Net.Mail.MailAddress(email);
+                return addr.Address == email;
+            }
+            catch
             {
                 return false;
             }

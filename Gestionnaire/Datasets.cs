@@ -8,9 +8,16 @@ namespace Gestionnaire
         public string this[string columnName] => Columns.TryGetValue(columnName, out var value) ? value : string.Empty;
     }
 
-    public abstract class ContractorActivity
+    public interface IContractorActivity
     {
-        protected static List<QueryResultRow> FetchData(string query, Dictionary<string, object> parameters)
+        List<QueryResultRow> FetchData(string query, Dictionary<string, object> parameters);
+        bool InsertData(string query, Dictionary<string, object> parameters);
+    }
+
+
+    public class ContractorActivity : IContractorActivity
+    {
+        public List<QueryResultRow> FetchData(string query, Dictionary<string, object> parameters)
         {
             try
             {
@@ -19,8 +26,104 @@ namespace Gestionnaire
             catch (Exception ex)
             {
                 Methodes.PrintConsole(Config.sourceDataset, ex.ToString(), true);
-                return [];
+                return new List<QueryResultRow>();
             }
+        }
+
+        public bool InsertData(string query, Dictionary<string, object> parameters)
+        {
+            try
+            {
+                Program.Controller.InsertData(query, parameters);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                if (!Config.productionRun)
+                    Methodes.PrintConsole(Config.sourceDataset, ex.ToString(), false);
+                else
+                    return false;
+            }
+            return false;
+        }
+    }
+
+    public class Jobs : ContractorActivity
+    {
+        public int AuthorityLevel { get; private set; }
+        public int JobId { get; private set; }
+        public string Name { get; private set; } = "";
+        public List<QueryResultRow> ListFonctions { get; private set; }
+        public bool IsNull { get; private set; } = true;
+
+        public Jobs(string jobName = "")
+        {
+            var parameters = new Dictionary<string, object>
+            {
+                { "@jobName", jobName },
+            };
+            string query = "SELECT authorityLevel, id, name FROM Jobs";
+            if (!string.IsNullOrWhiteSpace(jobName)) query += " WHERE name LIKE @jobName LIMIT 1";
+            else query += " ORDER BY authorityLevel ASC";
+
+            ListFonctions = FetchData(query, parameters);
+
+            if (ListFonctions.Count > 0)
+            {
+                _ = int.TryParse(ListFonctions[0]["authorityLevel"], out int prasedOutput);
+                AuthorityLevel = prasedOutput;
+                _ = int.TryParse(ListFonctions[0]["id"], out prasedOutput);
+                JobId = prasedOutput;
+                Name = ListFonctions[0]["name"];
+                IsNull = false;
+            }
+        }
+        public bool InsertNewJob(string jobName, int authorityLevel)
+        {
+            string query = "";
+            var parameters = new Dictionary<string, object>
+            {
+                { "@jobName", jobName },
+                { "@authorityLevel", authorityLevel }
+            };
+            query = "INSERT INTO Jobs (name, authorityLevel) SELECT * FROM (SELECT @jobName AS name, @authorityLevel AS authorityLevel) AS tmp WHERE NOT EXISTS (SELECT 1 FROM Jobs WHERE name = @jobName)";
+            return InsertData(query, parameters);
+        }
+        public bool ModifyJob(string jobName, int authorityLevel)
+        {
+            int paramsCount = 0;
+            string query = "";
+            var parameters = new Dictionary<string, object> {};
+            query = "UPDATE Jobs SET ";
+            if (jobName != "0")
+            {
+                query += "name = @jobName ";
+                parameters["@jobName"] = jobName;
+                Name = jobName;
+                paramsCount += 1;
+            }
+            if (authorityLevel > 1)
+            {
+                query += "authorityLevel = @authorityLevel ";
+                parameters["@authorityLevel"] = authorityLevel;
+                AuthorityLevel = authorityLevel;
+                paramsCount += 1;
+            }
+            parameters["@id"] = JobId;
+            query += "WHERE id = @id";
+            Console.WriteLine(query);
+            if (paramsCount > 0) return InsertData(query, parameters);
+            else return false;
+        }
+        public bool DeleteJob()
+        {
+            string query = "";
+            var parameters = new Dictionary<string, object>
+            {
+                { "@jobId", JobId }
+            };
+            query = "DELETE FROM Jobs WHERE id = @jobId";
+            return InsertData(query, parameters);
         }
     }
 
@@ -61,6 +164,17 @@ namespace Gestionnaire
                 IsNull = false;
             }
         }
+        public bool DeclareAbsence(int contractorId, long date)
+        {
+            string query = "";
+            var parameters = new Dictionary<string, object>
+            {
+                { "@contractorId", contractorId },
+                { "@date", date }
+            };
+            query = "INSERT IGNORE INTO Absences (contractorId, date) VALUES (@contractorId, @date)";
+            return InsertData(query, parameters);
+        }
     }
 
     public class PaidLeave : ContractorActivity
@@ -96,20 +210,25 @@ namespace Gestionnaire
             if (ListPaidLeave.Count > 0)
             {
                 IsInPaidLeave = true;
-                _ = long.TryParse(ListPaidLeave[0]["startDate"], out long sDate);
-                _ = long.TryParse(ListPaidLeave[0]["endDate"], out long eDate);
+                _ = long.TryParse(ListPaidLeave[0]["startDate"], out long Date);
+                DateTime datetime = DateTimeOffset.FromUnixTimeSeconds(Date).DateTime.Date;
+                StartDate = datetime.ToString("dd/MM/yyyy") ?? "";
+                UnixStartDate = Date;
 
-                DateTime sdate = DateTimeOffset.FromUnixTimeSeconds(sDate).DateTime.Date;
-                DateTime edate = DateTimeOffset.FromUnixTimeSeconds(eDate).DateTime.Date;
-                StartDate = sdate.ToString("dd/MM/yyyy") ?? "";
-                EndDate = edate.ToString("dd/MM/yyyy") ?? "";
-
-                UnixStartDate = sDate;
-                UnixEndDate = eDate;
+                _ = long.TryParse(ListPaidLeave[0]["endDate"], out Date);
+                datetime = DateTimeOffset.FromUnixTimeSeconds(Date).DateTime.Date;
+                EndDate = datetime.ToString("dd/MM/yyyy") ?? "";
+                UnixEndDate = Date;
 
                 Reason = ListPaidLeave[0]["reason"];
                 IsNull = false;
             }
+        }
+        public bool AuthorizePaidLeave(Dictionary<string, object> parameters)
+        {
+            string query = "";
+            query = "INSERT IGNORE INTO PaidLeave (contractorId, startDate, endDate, reason) VALUES (@contractorId, @startDate, @endDate, @reason)";
+            return InsertData(query, parameters);
         }
     }
 
@@ -152,6 +271,12 @@ namespace Gestionnaire
                 IsNull = false;
             }
         }
+        public bool AuthorizeTraining(Dictionary<string, object> parameters)
+        {
+            string query = "";
+            query = "INSERT IGNORE INTO Training (contractorId, type, address, formateur, date) VALUES (@contractorId, @type, @address, @formateur, @date)";
+            return InsertData(query, parameters);
+        }
     }
 
     public class Mission : ContractorActivity
@@ -190,6 +315,12 @@ namespace Gestionnaire
                 IsNull = false;
             }
         }
+        public bool AssignMission(Dictionary<string, object> parameters)
+        {
+            string query = "";
+            query = "INSERT IGNORE INTO Mission (contractorId, description, date) VALUES (@contractorId, @description, @date)";
+            return InsertData(query, parameters);
+        }
     }
 
     public class WorkTravel : ContractorActivity
@@ -223,21 +354,26 @@ namespace Gestionnaire
             if (ListWorkTravel.Count > 0)
             {
                 IsInWorkTravel = true;
-                _ = long.TryParse(ListWorkTravel[0]["startDate"], out long sDate);
-                _ = long.TryParse(ListWorkTravel[0]["endDate"], out long eDate);
+                _ = long.TryParse(ListWorkTravel[0]["startDate"], out long Date);
+                DateTime datetime = DateTimeOffset.FromUnixTimeSeconds(Date).DateTime.Date;
+                StartDate = datetime.ToString("dd/MM/yyyy");
+                UnixStartDate = Date;
 
-                DateTime sdate = DateTimeOffset.FromUnixTimeSeconds(sDate).DateTime.Date;
-                DateTime edate = DateTimeOffset.FromUnixTimeSeconds(eDate).DateTime.Date;
-                StartDate = sdate.ToString("dd/MM/yyyy");
-                EndDate = edate.ToString("dd/MM/yyyy");
-
-                UnixStartDate = sDate;
-                UnixEndDate = eDate;
+                _ = long.TryParse(ListWorkTravel[0]["endDate"], out Date);
+                datetime = DateTimeOffset.FromUnixTimeSeconds(Date).DateTime.Date;
+                EndDate = datetime.ToString("dd/MM/yyyy");
+                UnixEndDate = Date;
 
                 Address = ListWorkTravel[0]["address"];
                 Description = ListWorkTravel[0]["description"];
                 IsNull = false;
             }
+        }
+        public bool AuthorizeWorkTravel(Dictionary<string, object> parameters)
+        {
+            string query = "";
+            query = "INSERT IGNORE INTO WorkTravel (contractorId, startDate, endDate, address, description) VALUES (@contractorId, @startDate, @endDate, @address, @description)";
+            return InsertData(query, parameters);
         }
     }
 
@@ -253,42 +389,55 @@ namespace Gestionnaire
         public int Hours { get; private set; }
         public double Salary { get; private set; }
         public string Type { get; private set; } = "";
-        public string Locality { get; private set; } = "";
-        public int ResponsableId { get; private set; }
-        public string SignedDocument { get; private set; } = "";
-        public bool isNull { get; private set; } = true;
+        public bool IsNull { get; private set; } = true;
 
-        public Contracts(string fullName)
+        public Contracts(string fullName = "")
         {
-            var parameters = new Dictionary<string, object> { { "@name", fullName } };
-            string query = "SELECT contractorId, fullname, gsm, email, address, startDate, endDate, hours, salary, type, locality, responsableId, signedDocument FROM Contracts WHERE fullName LIKE @name ORDER BY endDate DESC";
-
-            var result = FetchData(query, parameters);
-            if (result.Count > 0)
+            if (!string.IsNullOrWhiteSpace(fullName))
             {
-                var row = result[0];
-                _ = int.TryParse(row["contractorId"], out int id);
-                _ = int.TryParse(row["startDate"], out int sDate);
-                _ = int.TryParse(row["endDate"], out int eDate);
-                _ = int.TryParse(row["hours"], out int hrs);
-                _ = double.TryParse(row["salary"], out double sal);
-                _ = int.TryParse(row["responsable"], out int resp);
+                var parameters = new Dictionary<string, object> { { "@name", fullName } };
+                string query = "SELECT contractorId, fullname, gsm, email, address, startDate, endDate, hours, salary, fonction FROM Contracts WHERE fullName LIKE @name ORDER BY endDate DESC";
 
-                ContractorId = id;
-                Fullname = row["fullname"];
-                GSM = row["gsm"];
-                Email = row["email"];
-                Address = row["address"];
-                StartDate = sDate;
-                EndDate = eDate;
-                Hours = hrs;
-                Salary = sal;
-                ResponsableId = resp;
-                Type = row["type"];
-                Locality = row["locality"];
-                SignedDocument = row["signedDocuments"];
-                isNull = false;
+                var result = FetchData(query, parameters);
+                if (result.Count > 0)
+                {
+                    var row = result[0];
+                    _ = int.TryParse(row["contractorId"], out int id);
+                    _ = int.TryParse(row["startDate"], out int sDate);
+                    _ = int.TryParse(row["endDate"], out int eDate);
+                    _ = int.TryParse(row["hours"], out int hrs);
+                    _ = double.TryParse(row["salary"], out double sal);
+
+                    ContractorId = id;
+                    Fullname = row["fullname"];
+                    GSM = row["gsm"];
+                    Email = row["email"];
+                    Address = row["address"];
+                    StartDate = sDate;
+                    EndDate = eDate;
+                    Hours = hrs;
+                    Salary = sal;
+                    Type = row["type"];
+                    IsNull = false;
+                }
             }
+        }
+        public bool InsertContract(Dictionary<string, object> parameters)
+        {
+            string query = "";
+            query = "INSERT INTO Contracts (fullname, gsm, email, address, endDate, hours, salary, fonction) SELECT * FROM (SELECT @fullName AS fullname, @gsm AS gsm, @email AS email, @address AS address, @endDate AS endDate, @hours AS hours, @salary AS salary, @job AS fonction) AS tmp WHERE NOT EXISTS (SELECT 1 FROM contractor WHERE (gsm = @gsm AND (endDate = 0 OU endDate > UNIX_TIMESTAMP())));";
+            return InsertData(query, parameters);
+        }
+
+        public bool EndContract()
+        {
+            string query = "";
+            var parameters = new Dictionary<string, object>
+            {
+                { "@contractorId", ContractorId }
+            };
+            query = "UPDATE Contracts SET endDate = UNIX_TIMESTAMP() WHERE contractorId = @contractorId";
+            return InsertData(query, parameters);
         }
     }
 }
