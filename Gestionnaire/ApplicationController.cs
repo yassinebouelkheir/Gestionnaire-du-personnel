@@ -1,9 +1,8 @@
-using System.Data;
-using Mysqlx;
+using System.Text.RegularExpressions;
 
 namespace Gestionnaire
 {
-    class ApplicationController
+    partial class ApplicationController
     {
         private readonly string ErrorMessage = "";
         public ApplicationController()
@@ -11,7 +10,7 @@ namespace Gestionnaire
             while (true)
             {
                 Console.Clear();
-                Methodes.PrintConsole(Config.sourceApplicationController, "--- Menu Principal" + ((Config.productionRun) ? ("") : (" - Mode Testeur activé")));
+                Methodes.PrintConsole(Config.sourceApplicationController, "--- Menu Principal" + (Config.productionRun ? "" : " - Mode Testeur activé"));
                 Methodes.PrintConsole(Config.sourceApplicationController, "S'il vous plaît, Entrer le numéro du service que vous voulez accèder:\n");
                 Methodes.PrintConsole(Config.sourceApplicationController, "1. L'absence/présence d'un membre");
                 Methodes.PrintConsole(Config.sourceApplicationController, "2. Les membres en congé");
@@ -42,7 +41,7 @@ namespace Gestionnaire
                         Absence absence = new(contractorId, unixdate);
                         if (absence.IsNull)
                         {
-                            Methodes.PrintConsole(Config.sourceApplicationController, fullname + " n'a aucune absence enregistré" + ((unixdate > 0) ? (" ce jour là.") : (".")) + "\n");
+                            Methodes.PrintConsole(Config.sourceApplicationController, fullname + " n'a aucune absence enregistré" + ((unixdate > 0) ? " ce jour là." : ".") + "\n");
                         }
                         else
                         {
@@ -60,9 +59,9 @@ namespace Gestionnaire
                                 for (int i = 0; i < maxToShow; i++)
                                 {
                                     List<QueryResultRow> row = absence.ListAbsence;
-                                    string reason = (!string.IsNullOrWhiteSpace(row[i]["reason"]) ? row[i]["reason"] : "Non spécifiée");
-                                    string doc = (!string.IsNullOrWhiteSpace(row[i]["justificativeDocument"]) ? row[i]["justificativeDocument"] : "Aucun document");
-                                    string formattedDate = (!string.IsNullOrWhiteSpace(row[i]["date"]) ? row[i]["date"] : "-1");
+                                    string reason = !string.IsNullOrWhiteSpace(row[i]["reason"]) ? row[i]["reason"] : "Non spécifiée";
+                                    string doc = !string.IsNullOrWhiteSpace(row[i]["justificativeDocument"]) ? row[i]["justificativeDocument"] : "Aucun document";
+                                    string formattedDate = !string.IsNullOrWhiteSpace(row[i]["date"]) ? row[i]["date"] : "-1";
 
                                     bool parsedDate = long.TryParse(formattedDate, out long unixTimestamp);
                                     if (parsedDate)
@@ -78,7 +77,7 @@ namespace Gestionnaire
                             else
                             {
                                 DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).Date;
-                                Methodes.PrintConsole(Config.sourceApplicationController, fullname + " a été absent le " + date.ToString("dd/MM/yyyy") + " Raison: " + ((!string.IsNullOrWhiteSpace(absence.Reason) ? absence.Reason : "Non spécifiée")) + ".\n");
+                                Methodes.PrintConsole(Config.sourceApplicationController, fullname + " a été absent le " + date.ToString("dd/MM/yyyy") + " Raison: " + (!string.IsNullOrWhiteSpace(absence.Reason) ? absence.Reason : "Non spécifiée") + ".\n");
                                 if (!string.IsNullOrWhiteSpace(absence.JustificativeDocument))
                                 {
                                     string response = Methodes.ReadUserInput("Est-ce que vous voulez télécharger le justificative fournis par le membre? (OUI/NON): ") ?? string.Empty;
@@ -100,7 +99,7 @@ namespace Gestionnaire
                         PaidLeave paidLeave = new(contractorId, unixdate);
                         if (paidLeave.IsNull)
                         {
-                            Methodes.PrintConsole(Config.sourceApplicationController, fullname + " n'a aucun congé payés enregistré" + ((unixdate > 0) ? (" ce jour là.") : (".")) + "\n");
+                            Methodes.PrintConsole(Config.sourceApplicationController, fullname + " n'a aucun congé payés enregistré" + ((unixdate > 0) ? " ce jour là." : ".") + "\n");
                         }
                         else
                         {
@@ -118,9 +117,9 @@ namespace Gestionnaire
                                 for (int i = 0; i < maxToShow; i++)
                                 {
                                     List<QueryResultRow> row = paidLeave.ListPaidLeave;
-                                    string reason = (!string.IsNullOrWhiteSpace(row[i]["reason"]) ? row[i]["reason"] : "Non spécifiée");
-                                    string sformattedDate = (!string.IsNullOrWhiteSpace(row[i]["startDate"]) ? row[i]["startDate"] : "-1");
-                                    string eformattedDate = (!string.IsNullOrWhiteSpace(row[i]["endDate"]) ? row[i]["endDate"] : "-1");
+                                    string reason = !string.IsNullOrWhiteSpace(row[i]["reason"]) ? row[i]["reason"] : "Non spécifiée";
+                                    string sformattedDate = !string.IsNullOrWhiteSpace(row[i]["startDate"]) ? row[i]["startDate"] : "-1";
+                                    string eformattedDate = !string.IsNullOrWhiteSpace(row[i]["endDate"]) ? row[i]["endDate"] : "-1";
 
                                     bool sparsedDate = long.TryParse(sformattedDate, out long sunixTimestamp);
                                     bool eparsedDate = long.TryParse(eformattedDate, out long eunixTimestamp);
@@ -144,9 +143,9 @@ namespace Gestionnaire
                             {
                                 DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).Date;
                                 Methodes.PrintConsole(Config.sourceApplicationController, fullname + " bénéfice d'un congé payé le " + date.ToString("dd/MM/yyyy"));
-                                Methodes.PrintConsole(Config.sourceApplicationController, "Date de début: " + ((!string.IsNullOrWhiteSpace(paidLeave.StartDate) ? paidLeave.StartDate : "Non spécifiée")) + ".\n");
-                                Methodes.PrintConsole(Config.sourceApplicationController, "Date de fin: " + ((!string.IsNullOrWhiteSpace(paidLeave.EndDate) ? paidLeave.EndDate : "Non spécifiée")) + ".\n");
-                                Methodes.PrintConsole(Config.sourceApplicationController, "Raison: " + ((!string.IsNullOrWhiteSpace(paidLeave.Reason) ? paidLeave.Reason : "Non spécifiée")) + ".\n");
+                                Methodes.PrintConsole(Config.sourceApplicationController, "Date de début: " + (!string.IsNullOrWhiteSpace(paidLeave.StartDate) ? paidLeave.StartDate : "Non spécifiée") + ".\n");
+                                Methodes.PrintConsole(Config.sourceApplicationController, "Date de fin: " + (!string.IsNullOrWhiteSpace(paidLeave.EndDate) ? paidLeave.EndDate : "Non spécifiée") + ".\n");
+                                Methodes.PrintConsole(Config.sourceApplicationController, "Raison: " + (!string.IsNullOrWhiteSpace(paidLeave.Reason) ? paidLeave.Reason : "Non spécifiée") + ".\n");
                             }
                         }
                         ShowContinuePrompt();
@@ -160,7 +159,7 @@ namespace Gestionnaire
                         Training training = new(contractorId, unixdate);
                         if (training.IsNull)
                         {
-                            Methodes.PrintConsole(Config.sourceApplicationController, fullname + " n'a aucune formation enregistré" + ((unixdate > 0) ? (" ce jour là.") : (".")) + "\n");
+                            Methodes.PrintConsole(Config.sourceApplicationController, fullname + " n'a aucune formation enregistré" + ((unixdate > 0) ? " ce jour là." : ".") + "\n");
                         }
                         else
                         {
@@ -178,9 +177,9 @@ namespace Gestionnaire
                                 for (int i = 0; i < maxToShow; i++)
                                 {
                                     List<QueryResultRow> row = training.ListTraining;
-                                    string type = (!string.IsNullOrWhiteSpace(row[i]["type"]) ? row[i]["type"] : "Non spécifiée");
-                                    string formateur = (!string.IsNullOrWhiteSpace(row[i]["formateur"]) ? row[i]["formateur"] : "Non spécifiée");
-                                    string formattedDate = (!string.IsNullOrWhiteSpace(row[i]["date"]) ? row[i]["date"] : "-1");
+                                    string type = !string.IsNullOrWhiteSpace(row[i]["type"]) ? row[i]["type"] : "Non spécifiée";
+                                    string formateur = !string.IsNullOrWhiteSpace(row[i]["formateur"]) ? row[i]["formateur"] : "Non spécifiée";
+                                    string formattedDate = !string.IsNullOrWhiteSpace(row[i]["date"]) ? row[i]["date"] : "-1";
 
                                     bool parsedDate = long.TryParse(formattedDate, out long unixTimestamp);
                                     if (parsedDate)
@@ -197,8 +196,8 @@ namespace Gestionnaire
                             {
                                 DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).Date;
                                 Methodes.PrintConsole(Config.sourceApplicationController, fullname + " bénéfice d'une formation le " + date.ToString("dd/MM/yyyy"));
-                                Methodes.PrintConsole(Config.sourceApplicationController, "Type: " + ((!string.IsNullOrWhiteSpace(training.Type) ? training.Type : "Non spécifiée")));
-                                Methodes.PrintConsole(Config.sourceApplicationController, "Formateur: " + ((!string.IsNullOrWhiteSpace(training.Trainer) ? training.Trainer : "Non spécifiée")));
+                                Methodes.PrintConsole(Config.sourceApplicationController, "Type: " + (!string.IsNullOrWhiteSpace(training.Type) ? training.Type : "Non spécifiée"));
+                                Methodes.PrintConsole(Config.sourceApplicationController, "Formateur: " + (!string.IsNullOrWhiteSpace(training.Trainer) ? training.Trainer : "Non spécifiée"));
                                 Methodes.PrintConsole(Config.sourceApplicationController, "Adresse: " + training.Address + ".\n");
                             }
                         }
@@ -213,7 +212,7 @@ namespace Gestionnaire
                         Mission mission = new(contractorId, unixdate);
                         if (mission.IsNull)
                         {
-                            Methodes.PrintConsole(Config.sourceApplicationController, fullname + " n'a aucune mission enregistré" + ((unixdate > 0) ? (" ce jour là.") : (".")) + "\n");
+                            Methodes.PrintConsole(Config.sourceApplicationController, fullname + " n'a aucune mission enregistré" + ((unixdate > 0) ? " ce jour là." : ".") + "\n");
                         }
                         else
                         {
@@ -231,10 +230,8 @@ namespace Gestionnaire
                                 for (int i = 0; i < maxToShow; i++)
                                 {
                                     List<QueryResultRow> row = mission.ListMission;
-                                    string type = (!string.IsNullOrWhiteSpace(row[i]["type"]) ? row[i]["type"] : "Non spécifiée");
-                                    string address = (!string.IsNullOrWhiteSpace(row[i]["address"]) ? row[i]["address"] : "Non spécifiée");
-                                    string description = (!string.IsNullOrWhiteSpace(row[i]["description"]) ? row[i]["description"] : "Non spécifiée");
-                                    string formattedDate = (!string.IsNullOrWhiteSpace(row[i]["date"]) ? row[i]["date"] : "-1");
+                                    string description = !string.IsNullOrWhiteSpace(row[i]["description"]) ? row[i]["description"] : "Non spécifiée";
+                                    string formattedDate = !string.IsNullOrWhiteSpace(row[i]["date"]) ? row[i]["date"] : "-1";
 
                                     bool parsedDate = long.TryParse(formattedDate, out long unixTimestamp);
                                     if (parsedDate)
@@ -244,15 +241,13 @@ namespace Gestionnaire
                                     }
                                     else formattedDate = "Date malformé";
 
-                                    Methodes.PrintConsole(Config.sourceApplicationController, $"- Date: {formattedDate} Type: {type} Adresse: {address}");
+                                    Methodes.PrintConsole(Config.sourceApplicationController, $"- Date: {formattedDate} Description: {description}");
                                 }
                             }
                             else
                             {
                                 DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).Date;
-                                Methodes.PrintConsole(Config.sourceApplicationController, fullname + " était en mission le " + date.ToString("dd/MM/yyyy"));
-                                Methodes.PrintConsole(Config.sourceApplicationController, "Type: " + ((!string.IsNullOrWhiteSpace(mission.Type) ? mission.Type : "Non spécifiée")));
-                                Methodes.PrintConsole(Config.sourceApplicationController, "Adresse: " + ((!string.IsNullOrWhiteSpace(mission.Address) ? mission.Address : "Non spécifiée")));
+                                Methodes.PrintConsole(Config.sourceApplicationController, "La mission de " + fullname + " le " + date.ToString("dd/MM/yyyy"));
                                 Methodes.PrintConsole(Config.sourceApplicationController, "Description: " + mission.Description + ".\n");
                             }
                         }
@@ -267,7 +262,7 @@ namespace Gestionnaire
                         WorkTravel workTravel = new(contractorId, unixdate);
                         if (workTravel.IsNull)
                         {
-                            Methodes.PrintConsole(Config.sourceApplicationController, fullname + " n'a aucun déplacement enregistré" + ((unixdate > 0) ? (" ce jour là.") : (".")) + "\n");
+                            Methodes.PrintConsole(Config.sourceApplicationController, fullname + " n'a aucun déplacement enregistré" + ((unixdate > 0) ? " ce jour là." : ".") + "\n");
                         }
                         else
                         {
@@ -285,9 +280,9 @@ namespace Gestionnaire
                                 for (int i = 0; i < maxToShow; i++)
                                 {
                                     List<QueryResultRow> row = workTravel.ListWorkTravel;
-                                    string address = (!string.IsNullOrWhiteSpace(row[i]["address"]) ? row[i]["address"] : "Non spécifiée");
-                                    string sformattedDate = (!string.IsNullOrWhiteSpace(row[i]["startDate"]) ? row[i]["startDate"] : "-1");
-                                    string eformattedDate = (!string.IsNullOrWhiteSpace(row[i]["endDate"]) ? row[i]["endDate"] : "-1");
+                                    string address = !string.IsNullOrWhiteSpace(row[i]["address"]) ? row[i]["address"] : "Non spécifiée";
+                                    string sformattedDate = !string.IsNullOrWhiteSpace(row[i]["startDate"]) ? row[i]["startDate"] : "-1";
+                                    string eformattedDate = !string.IsNullOrWhiteSpace(row[i]["endDate"]) ? row[i]["endDate"] : "-1";
 
                                     bool sparsedDate = long.TryParse(sformattedDate, out long sunixTimestamp);
                                     bool eparsedDate = long.TryParse(eformattedDate, out long eunixTimestamp);
@@ -311,10 +306,10 @@ namespace Gestionnaire
                             {
                                 DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).Date;
                                 Methodes.PrintConsole(Config.sourceApplicationController, fullname + " était en déplacement le " + date.ToString("dd/MM/yyyy"));
-                                Methodes.PrintConsole(Config.sourceApplicationController, "Date de début: " + ((!string.IsNullOrWhiteSpace(workTravel.StartDate) ? workTravel.StartDate : "Non spécifiée")) + ".\n");
-                                Methodes.PrintConsole(Config.sourceApplicationController, "Date de fin: " + ((!string.IsNullOrWhiteSpace(workTravel.EndDate) ? workTravel.EndDate : "Non spécifiée")) + ".\n");
-                                Methodes.PrintConsole(Config.sourceApplicationController, "Adresse: " + ((!string.IsNullOrWhiteSpace(workTravel.Address) ? workTravel.Address : "Non spécifiée")) + ".\n");
-                                Methodes.PrintConsole(Config.sourceApplicationController, "Description: " + ((!string.IsNullOrWhiteSpace(workTravel.Description) ? workTravel.Description : "Non spécifiée")) + ".\n");
+                                Methodes.PrintConsole(Config.sourceApplicationController, "Date de début: " + (!string.IsNullOrWhiteSpace(workTravel.StartDate) ? workTravel.StartDate : "Non spécifiée") + ".\n");
+                                Methodes.PrintConsole(Config.sourceApplicationController, "Date de fin: " + (!string.IsNullOrWhiteSpace(workTravel.EndDate) ? workTravel.EndDate : "Non spécifiée") + ".\n");
+                                Methodes.PrintConsole(Config.sourceApplicationController, "Adresse: " + (!string.IsNullOrWhiteSpace(workTravel.Address) ? workTravel.Address : "Non spécifiée") + ".\n");
+                                Methodes.PrintConsole(Config.sourceApplicationController, "Description: " + (!string.IsNullOrWhiteSpace(workTravel.Description) ? workTravel.Description : "Non spécifiée") + ".\n");
                             }
                         }
                         ShowContinuePrompt();
@@ -347,11 +342,10 @@ namespace Gestionnaire
                     }
                     case 8:
                     {
-                        if (Config.productionRun) return "Error, Votre choix doit être entre 1 et 7, Veuillez réssayer.";
+                        if (Config.productionRun) return "Erreur, Votre choix doit être entre 1 et 7, Veuillez réssayer s'il vous plaît...";
                         Console.Clear();
                         Methodes.PrintConsole(Config.sourceApplicationController, "--- Debug mode - Gestionnaire du personnel v1.0");
                         Methodes.PrintConsole(Config.sourceApplicationController, $"- MySQL Server IP: {Config.mysqlServer}:{Config.mysqlPort}");
-                        Methodes.PrintConsole(Config.sourceApplicationController, $"- SFTP Server IP: {Config.sftpServer}:{Config.sftpPort}");
                         Methodes.PrintConsole(Config.sourceApplicationController, "1. Remplir la base de donnée avec un script de test");
                         Methodes.PrintConsole(Config.sourceApplicationController, "2. Vider les tables de la base de donnée (sauf jobs et users)");
                         Methodes.PrintConsole(Config.sourceApplicationController, "3. Générer les salaires dans la table 'payments'");
@@ -386,10 +380,6 @@ namespace Gestionnaire
                         }
                         break;
                     }
-                default:
-                    {
-                        return "Error, Votre choix doit être entre 1 et 7, Veuillez réssayer.";
-                    }
             }
             return "";
         }
@@ -399,7 +389,8 @@ namespace Gestionnaire
             string date = Methodes.ReadUserInput("Enter une date précise (facultative) (dd/mm/aaaa): ") ?? string.Empty;
 
             Methodes.PrintConsole(Config.sourceApplicationController, "Votre demande est en cours de traitement, Veuillez patientez s'il vous plaît...");
-            Contracts contractor = new(contractorName);
+            string cleanedName = MyRegex().Replace(contractorName.Trim(), " ");         
+            Contracts contractor = new(cleanedName);
 
             if (contractor.IsNull)
             {
@@ -438,58 +429,53 @@ namespace Gestionnaire
                 string serviceText = Methodes.ReadUserInput("Votre choix (1-3): ") ?? string.Empty;
                 bool prasedInput = int.TryParse(serviceText, out int serviceNumber);
 
-                if (prasedInput) {
-                    if (serviceNumber == 3)
-                        break;
-                    ErrorMessage = RunAdminService(serviceNumber);
-                    }
-                else ErrorMessage = "Erreur, Votre choix doit être entre 1 et 3, Veuillez réssayer s'il vous plaît...";
+                if (prasedInput)
+                {
+                    if (serviceNumber < 3 && serviceNumber > 0) RunAdminService(serviceNumber);
+                    else if (serviceNumber == 3) break;
+                    else ErrorMessage = "Erreur, Votre choix doit être entre 1 et 3, Veuillez réssayer s'il vous plaît...";
+                }
             }
         }
         private static string RunAdminService(int service)
         {
             Console.WriteLine("\n");
-            string ErrorMessage = "";
             switch (service)
             {
                 case 1:
                     {
-                        Console.Clear();
+                        retryJobsManagement:Console.Clear();
                         Methodes.PrintConsole(Config.sourceApplicationController, "--- Gestion des fonctions");
                         Methodes.PrintConsole(Config.sourceApplicationController, "S'il vous plaît, Entrer le numéro du service que vous voulez:\n");
                         Methodes.PrintConsole(Config.sourceApplicationController, "1. Voir les fonctions actuelles et leur barrèmes");
                         Methodes.PrintConsole(Config.sourceApplicationController, "2. Ajouter une fonction");
                         Methodes.PrintConsole(Config.sourceApplicationController, "3. Gérer une fonction");
                         Methodes.PrintConsole(Config.sourceApplicationController, "4. Revenir au menu précédent");
-                        if (ErrorMessage != "") Methodes.PrintConsole(Config.sourceApplicationController, ErrorMessage); ErrorMessage = "";
                         string serviceText = Methodes.ReadUserInput("Votre choix (1-4): ") ?? string.Empty;
                         bool prasedInput = int.TryParse(serviceText, out int serviceNumber);
-
                         if (prasedInput)
                         {
-                            if (serviceNumber == 4)
-                                break;
-                            ErrorMessage = RunAdminService(serviceNumber + 2);
+                            if (serviceNumber < 4 && serviceNumber > 0) RunAdminService(serviceNumber + 2);
+                            else if (serviceNumber == 4) break;
+                            else goto retryJobsManagement;
                         }
                         break;
                     }
                 case 2:
                     {
-                        Console.Clear();
+                        retryStaffManagement:Console.Clear();
                         Methodes.PrintConsole(Config.sourceApplicationController, "--- Gestion des membres");
                         Methodes.PrintConsole(Config.sourceApplicationController, "S'il vous plaît, Entrer le numéro du service que vous voulez:\n");
                         Methodes.PrintConsole(Config.sourceApplicationController, "1. Ajouter un nouveau membre du personnel");
                         Methodes.PrintConsole(Config.sourceApplicationController, "2. Gérer le contrat d'un membre existant");
                         Methodes.PrintConsole(Config.sourceApplicationController, "3. Revenir au menu précédent");
-                        if (ErrorMessage != "") Methodes.PrintConsole(Config.sourceApplicationController, ErrorMessage); ErrorMessage = "";
                         string serviceText = Methodes.ReadUserInput("Votre choix (1-3): ") ?? string.Empty;
                         bool prasedInput = int.TryParse(serviceText, out int serviceNumber);
-
                         if (prasedInput)
                         {
-                            if (serviceNumber == 3)
-                                break;
-                            ErrorMessage = RunAdminService(serviceNumber + 5);
+                            if (serviceNumber < 3 && serviceNumber > 0) RunAdminService(serviceNumber + 5);
+                            else if (serviceNumber == 3) break;
+                            else goto retryStaffManagement;
                         }
                         break;
                     }
@@ -501,7 +487,7 @@ namespace Gestionnaire
                         for (int i = 0; i < job.ListFonctions.Count; i++)
                         {
                             List<QueryResultRow> row = job.ListFonctions;
-                            string name = (!string.IsNullOrWhiteSpace(row[i]["name"]) ? row[i]["name"] : "Non spécifiée");
+                            string name = !string.IsNullOrWhiteSpace(row[i]["name"]) ? row[i]["name"] : "Non spécifiée";
                             bool parsedAuthorityLevel = int.TryParse(row[i]["authorityLevel"], out int authorityLevel);
                             if (parsedAuthorityLevel)
                             {
@@ -691,7 +677,7 @@ namespace Gestionnaire
                             }
 
                         var parameters = new Dictionary<string, object> { };
-                        parameters["@fullName"] = crewMemberName;
+                        parameters["@fullName"] = MyRegex().Replace(crewMemberName.Trim(), " ");
                         parameters["@gsm"] = crewMemberGSM;
                         parameters["@email"] = crewMemberEmail;
                         parameters["@address"] = crewMemberAddress;
@@ -711,38 +697,37 @@ namespace Gestionnaire
                 case 7:
                     {
                     retryCrewMemberName: string crewMemberName = Methodes.ReadUserInput("Entrer le nom complète du membre que vous souhaiter gérer: ") ?? string.Empty;
+                    if (string.IsNullOrWhiteSpace(crewMemberName) || crewMemberName.Length < 8)
+                    {
+                        Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, Le nom complète doit avoir au moins 8 caractères et ne doit pas être vide.");
+                        goto retryCrewMemberName;
+                    }
+                    string cleanedName = MyRegex().Replace(crewMemberName.Trim(), " "); 
+                    Contracts contract = new(cleanedName);
 
-                        if (string.IsNullOrWhiteSpace(crewMemberName) || crewMemberName.Length < 8)
-                        {
-                            Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, Le nom complète doit avoir au moins 8 caractères et ne doit pas être vide.");
-                            goto retryCrewMemberName;
-                        }
-
-                        Contracts contract = new(crewMemberName);
-
-                        if (contract.IsNull)
-                        {
-                            Methodes.PrintConsole(Config.sourceApplicationController, $"Il ne existe aucune contract actif pour {crewMemberName}.");
-                            ShowContinuePrompt();
-                            RunAdminService(6);
-                            break;
-                        }
-                        else
-                        {
-                            Console.Clear();
-                        retrySelectOption: Methodes.PrintConsole(Config.sourceApplicationController, $"--- Gestion du contrat de {contract.Fullname}");
-                            Methodes.PrintConsole(Config.sourceApplicationController, "S'il vous plaît, Entrer le numéro du service que vous voulez:\n");
-                            Methodes.PrintConsole(Config.sourceApplicationController, "1. Mettre en fin le contrat.");
-                            Methodes.PrintConsole(Config.sourceApplicationController, "2. Déclarer un absence");
-                            Methodes.PrintConsole(Config.sourceApplicationController, "3. Déposer un justificative d'absence");
-                            Methodes.PrintConsole(Config.sourceApplicationController, "4. Autoriser une formation");
-                            Methodes.PrintConsole(Config.sourceApplicationController, "5. Autoriser un congé payé");
-                            Methodes.PrintConsole(Config.sourceApplicationController, "6. Autoriser un déplacement");
-                            Methodes.PrintConsole(Config.sourceApplicationController, "7. Assigner une mission");
-                            Methodes.PrintConsole(Config.sourceApplicationController, "8. Télécharger son fiche de paie");
-                            Methodes.PrintConsole(Config.sourceApplicationController, "9. Revenir au menu précédent");
-                            string selectOption = Methodes.ReadUserInput("Votre choix (1-9): ") ?? string.Empty;
-                            _ = int.TryParse(selectOption, out int selectedOption);
+                    if (contract.IsNull)
+                    {
+                        Methodes.PrintConsole(Config.sourceApplicationController, $"Il ne existe aucune contract actif pour {crewMemberName}.");
+                        ShowContinuePrompt();
+                        RunAdminService(2);
+                        break;
+                    }
+                    else
+                    {
+                        Console.Clear();
+                    retrySelectOption: Methodes.PrintConsole(Config.sourceApplicationController, $"--- Gestion du contrat de {contract.Fullname}");
+                        Methodes.PrintConsole(Config.sourceApplicationController, "S'il vous plaît, Entrer le numéro du service que vous voulez:\n");
+                        Methodes.PrintConsole(Config.sourceApplicationController, "1. Mettre en fin le contrat.");
+                        Methodes.PrintConsole(Config.sourceApplicationController, "2. Déclarer un absence");
+                        Methodes.PrintConsole(Config.sourceApplicationController, "3. Déposer un justificative d'absence");
+                        Methodes.PrintConsole(Config.sourceApplicationController, "4. Autoriser une formation");
+                        Methodes.PrintConsole(Config.sourceApplicationController, "5. Autoriser un congé payé");
+                        Methodes.PrintConsole(Config.sourceApplicationController, "6. Autoriser un déplacement");
+                        Methodes.PrintConsole(Config.sourceApplicationController, "7. Assigner une mission");
+                        Methodes.PrintConsole(Config.sourceApplicationController, "8. Télécharger son fiche de paie");
+                        Methodes.PrintConsole(Config.sourceApplicationController, "9. Revenir au menu précédent");
+                        string selectOption = Methodes.ReadUserInput("Votre choix (1-9): ") ?? string.Empty;
+                        _ = int.TryParse(selectOption, out int selectedOption);
 
                             if (selectedOption == 1)
                             {
@@ -753,7 +738,10 @@ namespace Gestionnaire
                                     if (dataInserted) Methodes.PrintConsole(Config.sourceApplicationController, $"Le contrat de {contract.Fullname} a été mise en fin avec success");
                                     else Methodes.PrintConsole(Config.sourceApplicationController, $"Un erreur s'est produite, Veuillez réessayer s'il vous plaît...");
                                 }
-                            }
+                                ShowContinuePrompt();
+                                RunAdminService(2);
+                                break;
+                            }   
                             else if (selectedOption == 2)
                             {
                             retryAbsenceDate: string crewMemberAbsenceDate = Methodes.ReadUserInput("Enter la date d'absence: ") ?? string.Empty;
@@ -781,6 +769,9 @@ namespace Gestionnaire
                                 bool dataInserted = absent.DeclareAbsence(contract.ContractorId, crewMemberUnixDate);
                                 if (dataInserted) Methodes.PrintConsole(Config.sourceApplicationController, $"Le membre {contract.Fullname} a été déclaré absent le {crewMemberAbsenceDate}.");
                                 else Methodes.PrintConsole(Config.sourceApplicationController, $"Un erreur s'est produite, Veuillez réessayer s'il vous plaît...");
+                                ShowContinuePrompt();
+                                RunAdminService(2);
+                                break;
                             }
                             else if (selectedOption == 3)
                             {
@@ -858,13 +849,13 @@ namespace Gestionnaire
                                 }
 
                                 var parameters = new Dictionary<string, object>
-                                {
-                                    { "@contractorId", contract.ContractorId },
-                                    { "@type", crewMemberTypeTraining },
-                                    { "@address", crewMemberAddress },
-                                    { "@formateur", crewMemberFormateur },
-                                    { "@date", crewMemberUnixDate }
-                                };
+                        {
+                            { "@contractorId", contract.ContractorId },
+                            { "@type", crewMemberTypeTraining },
+                            { "@address", crewMemberAddress },
+                            { "@formateur", crewMemberFormateur },
+                            { "@date", crewMemberUnixDate }
+                        };
 
                                 bool dataInserted = training.AuthorizeTraining(parameters);
                                 if (dataInserted) Methodes.PrintConsole(Config.sourceApplicationController, $"Votre demande a été enregistré avec success.");
@@ -885,6 +876,39 @@ namespace Gestionnaire
                             }
                             else if (selectedOption == 5)
                             {
+                                PaidLeave paidLeave = new(contract.ContractorId);
+                                int currentYear = DateTime.UtcNow.Year;
+                                int count = 0;
+
+
+                                List<QueryResultRow> row = paidLeave.ListPaidLeave;
+                                for (int i = 0; i < row.Count; i++)
+                                {
+                                    _ = long.TryParse(row[i]["date"], out long unixdate);
+                                    DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).UtcDateTime;
+                                    if (date.Year == currentYear)
+                                    {
+                                        count += (contract.EndDate - contract.StartDate) / 86400;
+                                        Console.WriteLine(count);
+                                    }
+                                }
+
+                                int totalbonus = 0;
+                                if (contract.Job == "Employé")
+                                {
+                                    long secondsTotal = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - contract.StartDate;
+                                    double yearsTotal = secondsTotal / (365 * 24 * 60 * 60);
+                                    totalbonus = (int)(yearsTotal / 3);
+                                }
+
+                                if ((count > 19 && contract.Job == "Ouvrier") || (count > (19 + totalbonus) && contract.Job == "Employé") || (count > 19 && contract.Job == "Consultant"))
+                                {
+                                    Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, Ce membre a déjà atteint le nombre maximal du congé payé par an.");
+                                    ShowContinuePrompt();
+                                    RunAdminService(2);
+                                    break;
+                                }
+
                             retryPaidLeave: string paidLeaveStartDate = Methodes.ReadUserInput("Enter la date du début de congé: ") ?? string.Empty;
                                 string paidLeaveEndDate = Methodes.ReadUserInput("Enter la date du fin de congé: ") ?? string.Empty;
                                 long paidLeaveUnixStartDate = 0, paidLeaveUnixEndDate = 0;
@@ -901,8 +925,18 @@ namespace Gestionnaire
                                         Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, la date du début et du fin doit être dans le futur.");
                                         goto retryPaidLeave;
                                     }
-                                    paidLeaveUnixStartDate = ((DateTimeOffset)sd).ToUnixTimeSeconds();
-                                    paidLeaveUnixEndDate = ((DateTimeOffset)ed).ToUnixTimeSeconds();
+                                    paidLeaveUnixStartDate = ((DateTimeOffset)sd.AddDays(1)).ToUnixTimeSeconds();
+                                    paidLeaveUnixEndDate = ((DateTimeOffset)ed.AddDays(1)).ToUnixTimeSeconds();
+
+                                    TimeSpan difference = ed - sd;
+                                    int paidLeaveDaysLeft = 20 + totalbonus - count;
+                                    if (difference.Days > paidLeaveDaysLeft)
+                                    {
+                                        Methodes.PrintConsole(Config.sourceApplicationController, $"Erreur, Ce membre ne peut pas prendre un congé de plus que {paidLeaveDaysLeft} jours.");
+                                        ShowContinuePrompt();
+                                        RunAdminService(2);
+                                        break;
+                                    }
                                 }
 
                             retryPaidLeaveReason: string paidLeaveReason = Methodes.ReadUserInput("Enter la raison du congé payé: ") ?? string.Empty;
@@ -913,14 +947,13 @@ namespace Gestionnaire
                                 }
 
                                 var parameters = new Dictionary<string, object>
-                                {
-                                    { "@contractorId", contract.ContractorId },
-                                    { "@startDate", paidLeaveUnixStartDate },
-                                    { "@endDate", paidLeaveUnixEndDate },
-                                    { "@reason", paidLeaveReason }
-                                };
+                        {
+                            { "@contractorId", contract.ContractorId },
+                            { "@startDate", paidLeaveUnixStartDate },
+                            { "@endDate", paidLeaveUnixEndDate },
+                            { "@reason", paidLeaveReason }
+                        };
 
-                                PaidLeave paidLeave = new(contract.ContractorId);
                                 bool dataInserted = paidLeave.AuthorizePaidLeave(parameters);
                                 if (dataInserted) Methodes.PrintConsole(Config.sourceApplicationController, $"Votre demande a été enregistré avec success.");
                                 else Methodes.PrintConsole(Config.sourceApplicationController, $"Un erreur s'est produite, Veuillez réessayer s'il vous plaît...");
@@ -965,13 +998,13 @@ namespace Gestionnaire
                                 }
 
                                 var parameters = new Dictionary<string, object>
-                                {
-                                    { "@contractorId", contract.ContractorId },
-                                    { "@startDate", retryWorkTravelUnixStartDate },
-                                    { "@endDate", retryWorkTravelUnixEndDate },
-                                    { "@address", WorkTravelAddr },
-                                    { "@description", WorkTravelDescription }
-                                };
+                        {
+                            { "@contractorId", contract.ContractorId },
+                            { "@startDate", retryWorkTravelUnixStartDate },
+                            { "@endDate", retryWorkTravelUnixEndDate },
+                            { "@address", WorkTravelAddr },
+                            { "@description", WorkTravelDescription }
+                        };
 
                                 WorkTravel worktravel = new(contract.ContractorId);
                                 bool dataInserted = worktravel.AuthorizeWorkTravel(parameters);
@@ -1013,11 +1046,11 @@ namespace Gestionnaire
                                 }
 
                                 var parameters = new Dictionary<string, object>
-                                {
-                                    { "@contractorId", contract.ContractorId },
-                                    { "@description", missionDescription },
-                                    { "@date", missionUnixDate }
-                                };
+                        {
+                            { "@contractorId", contract.ContractorId },
+                            { "@description", missionDescription },
+                            { "@date", missionUnixDate }
+                        };
 
                                 Mission mission = new(contract.ContractorId);
                                 bool dataInserted = mission.AssignMission(parameters);
@@ -1033,6 +1066,7 @@ namespace Gestionnaire
                                 Methodes.GenerateAndZipPayslips(contract.ContractorId);
                                 ShowContinuePrompt();
                                 RunAdminService(2);
+                                break;
                             }
                             else if (selectedOption == 9) break;
                             else
@@ -1041,16 +1075,9 @@ namespace Gestionnaire
                                 ShowContinuePrompt();
                                 goto retrySelectOption;
                             }
-
-                        ShowContinuePrompt();
-                        RunAdminService(2);
                         break;
-                        }
                     }
-                default:
-                    {
-                        return "Erreur, Votre choix est invalide, Veuillez réssayer s'il vous plaît...";
-                    }
+                }
             }
             return "";
         }
@@ -1066,5 +1093,8 @@ namespace Gestionnaire
                 Environment.Exit(0);
             }
         }
+
+        [GeneratedRegex(@"\s+")]
+        private static partial Regex MyRegex();
     }
 }

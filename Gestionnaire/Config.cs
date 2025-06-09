@@ -20,23 +20,6 @@ namespace Gestionnaire
             For security purposes, this section does not have documentation.
         */
         
-        public const string sftpServer = "localhost";
-        /*
-            const string serverAddress
-
-            This constant set the server address ip for FTP services. (IPv4 format)
-            Set values:
-                string ***.***.***.***
-        */
-    public const string sftpPort = "22";
-        /*
-            const string serverAddress
-
-            This constant set the server address ip for FTP services. (IPv4 format)
-            Set values:
-                string ***.***.***.***
-        */
-
         public const int consoleDateTime = 2;
         /*
             const int consoleDateTime
@@ -48,6 +31,7 @@ namespace Gestionnaire
                 2 for HH:mm:ss
                 3 for yyyy/MM/dd
         */
+        
         public const int maxLoginAttempts = 3;
         /*
             const int maxLoginAttempts
@@ -234,13 +218,20 @@ namespace Gestionnaire
                         CASE WHEN j.name = 'Employé' THEN GREATEST(total_abs_days - 30, 0) ELSE total_abs_days END
                     FROM Contracts c
                     JOIN Jobs j ON c.fonction = j.id
-                    LEFT JOIN (
-                        SELECT contractorId,
-                            COUNT(DISTINCT FROM_UNIXTIME(date, '%Y-%m-%d')) AS total_abs_days
-                        FROM Absences
-                        WHERE date BETWEEN UNIX_TIMESTAMP(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01')) AND UNIX_TIMESTAMP(CURRENT_DATE)
-                        GROUP BY contractorId
-                    ) abs ON abs.contractorId = c.contractorId
+                LEFT JOIN (
+                SELECT a.contractorId,
+                        COUNT(DISTINCT FROM_UNIXTIME(a.date, '%Y-%m-%d')) AS total_abs_days
+                FROM Absences a
+                WHERE a.date BETWEEN UNIX_TIMESTAMP(DATE_SUB(CURRENT_DATE, INTERVAL 14 DAY))
+                                AND UNIX_TIMESTAMP(CURRENT_DATE)
+                    AND NOT EXISTS (
+                        SELECT 1
+                        FROM PaidLeave pl
+                        WHERE pl.contractorId = a.contractorId
+                        AND a.date BETWEEN pl.startDate AND pl.endDate
+                    )
+                GROUP BY a.contractorId
+                ) abs ON abs.contractorId = c.contractorId
                     WHERE j.name IN ('Employé', 'Consultant');
                 END IF;
             END;
@@ -588,12 +579,19 @@ namespace Gestionnaire
             FROM Contracts c
             JOIN Jobs j ON c.fonction = j.id
             LEFT JOIN (
-            SELECT contractorId,
-                COUNT(DISTINCT FROM_UNIXTIME(`date`, '%Y-%m-%d')) AS total_abs_days
-            FROM Absences
-            WHERE `date` BETWEEN UNIX_TIMESTAMP(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01')) AND UNIX_TIMESTAMP(CURRENT_DATE)
-            GROUP BY contractorId
-            ) abs ON abs.contractorId = c.contractorId
+                SELECT a.contractorId,
+                        COUNT(DISTINCT FROM_UNIXTIME(a.date, '%Y-%m-%d')) AS total_abs_days
+                FROM Absences a
+                WHERE a.date BETWEEN UNIX_TIMESTAMP(DATE_SUB(CURRENT_DATE, INTERVAL 14 DAY))
+                                AND UNIX_TIMESTAMP(CURRENT_DATE)
+                    AND NOT EXISTS (
+                        SELECT 1
+                        FROM PaidLeave pl
+                        WHERE pl.contractorId = a.contractorId
+                        AND a.date BETWEEN pl.startDate AND pl.endDate
+                    )
+                GROUP BY a.contractorId
+                ) abs ON abs.contractorId = c.contractorId
             WHERE j.name IN ('Employé', 'Consultant');
             ";
         /*

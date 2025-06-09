@@ -1,5 +1,3 @@
-using Microsoft.VisualBasic;
-
 namespace Gestionnaire
 {
     public class QueryResultRow
@@ -283,15 +281,14 @@ namespace Gestionnaire
     {
         public bool IsInMission { get; private set; }
         public List<QueryResultRow> ListMission { get; private set; }
-        public string Type { get; private set; } = "";
-        public string Address { get; private set; } = "";
+        public long DateMission { get; private set; }
         public string Description { get; private set; } = "";
         public bool IsNull { get; private set; } = true;
 
         public Mission(int contractorId, long date = -1)
         {
             var parameters = new Dictionary<string, object> { { "@contractorId", contractorId } };
-            string query = "SELECT type, address, description, date FROM Mission WHERE contractorId = @contractorId";
+            string query = "SELECT description, date FROM Mission WHERE contractorId = @contractorId";
 
             if (date > 0)
             {
@@ -309,9 +306,9 @@ namespace Gestionnaire
             if (ListMission.Count > 0)
             {
                 IsInMission = true;
-                Type = ListMission[0]["type"];
-                Address = ListMission[0]["address"];
                 Description = ListMission[0]["description"];
+                _ = long.TryParse(ListMission[0]["date"], out long DateMiss);
+                DateMission = DateMiss;
                 IsNull = false;
             }
         }
