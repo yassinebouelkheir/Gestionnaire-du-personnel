@@ -1,16 +1,17 @@
+using System.Data;
 using Mysqlx;
 
 namespace Gestionnaire
 {
     class ApplicationController
     {
-        private string ErrorMessage = "";
+        private readonly string ErrorMessage = "";
         public ApplicationController()
         {
             while (true)
             {
                 Console.Clear();
-                Methodes.PrintConsole(Config.sourceApplicationController, "--- Menu Principal");
+                Methodes.PrintConsole(Config.sourceApplicationController, "--- Menu Principal" + ((Config.productionRun) ? ("") : (" - Mode Testeur activé")));
                 Methodes.PrintConsole(Config.sourceApplicationController, "S'il vous plaît, Entrer le numéro du service que vous voulez accèder:\n");
                 Methodes.PrintConsole(Config.sourceApplicationController, "1. L'absence/présence d'un membre");
                 Methodes.PrintConsole(Config.sourceApplicationController, "2. Les membres en congé");
@@ -19,6 +20,7 @@ namespace Gestionnaire
                 Methodes.PrintConsole(Config.sourceApplicationController, "5. Les membres en déplacements");
                 Methodes.PrintConsole(Config.sourceApplicationController, "6. Paramètres global du société");
                 Methodes.PrintConsole(Config.sourceApplicationController, "7. Fermer l'application");
+                if (!Config.productionRun) Methodes.PrintConsole(Config.sourceApplicationController, "8. Beta testing options");
                 if (ErrorMessage != "") Methodes.PrintConsole(Config.sourceApplicationController, ErrorMessage); ErrorMessage = "";
                 string serviceText = Methodes.ReadUserInput("Votre choix (1-7): ") ?? string.Empty;
                 bool prasedInput = int.TryParse(serviceText, out int serviceNumber);
@@ -82,7 +84,7 @@ namespace Gestionnaire
                                     string response = Methodes.ReadUserInput("Est-ce que vous voulez télécharger le justificative fournis par le membre? (OUI/NON): ") ?? string.Empty;
                                     if (!string.IsNullOrWhiteSpace(response) && response.Equals("oui", StringComparison.OrdinalIgnoreCase))
                                     {
-                                        System.Diagnostics.Process.Start("https://"+Config.serverAddress+"/staff/"+contractorId+"/justificatives_absences/"+absence.JustificativeDocument);
+                                        // SFTP Code
                                     }
                                 }
                             }
@@ -341,6 +343,47 @@ namespace Gestionnaire
                     {
                         string response = Methodes.ReadUserInput("Est-ce que vous voulez êtes sûr que vous voulez fermer l'application? (OUI/NON): ") ?? string.Empty;
                         if (!string.IsNullOrWhiteSpace(response) && response.Equals("oui", StringComparison.OrdinalIgnoreCase)) Environment.Exit(0);
+                        break;
+                    }
+                    case 8:
+                    {
+                        if (Config.productionRun) return "Error, Votre choix doit être entre 1 et 7, Veuillez réssayer.";
+                        Console.Clear();
+                        Methodes.PrintConsole(Config.sourceApplicationController, "--- Debug mode - Gestionnaire du personnel v1.0");
+                        Methodes.PrintConsole(Config.sourceApplicationController, $"- MySQL Server IP: {Config.mysqlServer}:{Config.mysqlPort}");
+                        Methodes.PrintConsole(Config.sourceApplicationController, $"- SFTP Server IP: {Config.sftpServer}:{Config.sftpPort}");
+                        Methodes.PrintConsole(Config.sourceApplicationController, "1. Remplir la base de donnée avec un script de test");
+                        Methodes.PrintConsole(Config.sourceApplicationController, "2. Vider les tables de la base de donnée (sauf jobs et users)");
+                        Methodes.PrintConsole(Config.sourceApplicationController, "3. Générer les salaires dans la table 'payments'");
+                        Methodes.PrintConsole(Config.sourceApplicationController, "4. Télécharger tout les fiche de paie généré ce mois là (de la table 'payments')");
+                        Methodes.PrintConsole(Config.sourceApplicationController, "X. Revenir au menu principal");
+                        string response = Methodes.ReadUserInput("Votre choix (1-X): ") ?? string.Empty;
+                        bool prasedInput = int.TryParse(response, out int serviceNumber);
+                        if (prasedInput)
+                        {
+                            if (serviceNumber == 1) Program.Controller.InsertData(Config.debugScript);
+                            else if (serviceNumber == 2)
+                            {
+                                string query = @"
+                                    SET FOREIGN_KEY_CHECKS = 0;
+                                    TRUNCATE TABLE Absences;
+                                    TRUNCATE TABLE Mission;
+                                    TRUNCATE TABLE PaidLeave;
+                                    TRUNCATE TABLE Training;
+                                    TRUNCATE TABLE WorkTravel;
+                                    TRUNCATE TABLE Contracts;
+                                    SET FOREIGN_KEY_CHECKS = 1;";
+                                Program.Controller.InsertData(query);
+                            }
+                            else if (serviceNumber == 3) Program.Controller.InsertData(Config.generatePayslips);
+                            else if (serviceNumber == 4) Methodes.GenerateAndZipPayslips();
+                            if (serviceNumber > 0 && serviceNumber < 5)
+                            {
+                                Methodes.PrintConsole(Config.sourceApplicationController, "Fonction exécuté avec success");
+                                ShowContinuePrompt();
+                                RunService(8);
+                            }
+                        }
                         break;
                     }
                 default:
@@ -695,9 +738,10 @@ namespace Gestionnaire
                             Methodes.PrintConsole(Config.sourceApplicationController, "4. Autoriser une formation");
                             Methodes.PrintConsole(Config.sourceApplicationController, "5. Autoriser un congé payé");
                             Methodes.PrintConsole(Config.sourceApplicationController, "6. Autoriser un déplacement");
-                            Methodes.PrintConsole(Config.sourceApplicationController, "7. Autoriser une formation");
-                            Methodes.PrintConsole(Config.sourceApplicationController, "8. Assigner une mission");
-                            string selectOption = Methodes.ReadUserInput("Votre choix (1-8): ") ?? string.Empty;
+                            Methodes.PrintConsole(Config.sourceApplicationController, "7. Assigner une mission");
+                            Methodes.PrintConsole(Config.sourceApplicationController, "8. Télécharger son fiche de paie");
+                            Methodes.PrintConsole(Config.sourceApplicationController, "9. Revenir au menu précédent");
+                            string selectOption = Methodes.ReadUserInput("Votre choix (1-9): ") ?? string.Empty;
                             _ = int.TryParse(selectOption, out int selectedOption);
 
                             if (selectedOption == 1)
@@ -740,11 +784,33 @@ namespace Gestionnaire
                             }
                             else if (selectedOption == 3)
                             {
+                                // SFTP Code
                                 break;
                             }
                             else if (selectedOption == 4)
                             {
                                 Training training = new(contract.ContractorId);
+                                int currentYear = DateTime.UtcNow.Year;
+                                int count = 0, totalcount = 0;
+
+                                List<QueryResultRow> row = training.ListTraining;
+                                for (int i = 0; i < row.Count; i++)
+                                {
+                                    _ = long.TryParse(row[i]["date"], out long unixdate);
+                                    DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).UtcDateTime;
+                                    if (date.Year == currentYear)
+                                    {
+                                        count++;
+                                    }
+                                    totalcount++;
+                                }
+                                if ((count > 3 && contract.Job == "Ouvrier") || (count > 2 && contract.Job == "Employé"))
+                                {
+                                    Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, Ce membre a déjà atteint le nombre maximal des formations par an.");
+                                    ShowContinuePrompt();
+                                    RunAdminService(2);
+                                    break;
+                                }
 
                             retryTrainingDate: string crewMemberTrainingDate = Methodes.ReadUserInput("Enter la date du formation: ") ?? string.Empty;
                                 long crewMemberUnixDate = 0;
@@ -803,6 +869,16 @@ namespace Gestionnaire
                                 bool dataInserted = training.AuthorizeTraining(parameters);
                                 if (dataInserted) Methodes.PrintConsole(Config.sourceApplicationController, $"Votre demande a été enregistré avec success.");
                                 else Methodes.PrintConsole(Config.sourceApplicationController, $"Un erreur s'est produite, Veuillez réessayer s'il vous plaît...");
+
+                                if (totalcount == 9 && contract.Job == "Ouvrier")
+                                {
+                                    Methodes.PrintConsole(Config.sourceApplicationController, "Remarque! Ce ouvrier va bénificer d'une 5% d'augmantation du salaire dès le prochain virement.");
+                                    contract.UpdateSalary(contract.Salary + (contract.Salary * 0.05));
+                                }
+                                else if (totalcount == 4 && contract.Job == "Employé")
+                                {
+                                    Methodes.PrintConsole(Config.sourceApplicationController, "Remarque! Ce employé peut postuler dès maintenant à une meilleur fonction.");
+                                }
                                 ShowContinuePrompt();
                                 RunAdminService(2);
                                 break;
@@ -905,7 +981,7 @@ namespace Gestionnaire
                                 RunAdminService(2);
                                 break;
                             }
-                            else if (selectedOption == 6)
+                            else if (selectedOption == 7)
                             {
                             retryMissionDate: string missionStartDate = Methodes.ReadUserInput("Enter la date du mission: ") ?? string.Empty;
                                 long missionUnixDate = 0;
@@ -951,10 +1027,18 @@ namespace Gestionnaire
                                 RunAdminService(2);
                                 break;
                             }
-                            else if (selectedOption == 7) break;
+                            else if (selectedOption == 8)
+                            {
+                                Methodes.PrintConsole(Config.sourceApplicationController, $"Votre demande a été enregistré avec success, Veuillez patientez...");
+                                Methodes.GenerateAndZipPayslips(contract.ContractorId);
+                                ShowContinuePrompt();
+                                RunAdminService(2);
+                            }
+                            else if (selectedOption == 9) break;
                             else
                             {
-                                Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, Votre choix doit être entre 1 et 7, Veuillez réssayer s'il vous plaît...");
+                                Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, Votre choix doit être entre 1 et 9, Veuillez réssayer s'il vous plaît...");
+                                ShowContinuePrompt();
                                 goto retrySelectOption;
                             }
 

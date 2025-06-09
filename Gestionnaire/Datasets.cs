@@ -388,7 +388,7 @@ namespace Gestionnaire
         public int EndDate { get; set; }
         public int Hours { get; private set; }
         public double Salary { get; private set; }
-        public string Type { get; private set; } = "";
+        public string Job { get; private set; } = "";
         public bool IsNull { get; private set; } = true;
 
         public Contracts(string fullName = "")
@@ -417,15 +417,29 @@ namespace Gestionnaire
                     EndDate = eDate;
                     Hours = hrs;
                     Salary = sal;
-                    Type = row["type"];
+                    Job = row["fonction"];
                     IsNull = false;
                 }
             }
         }
+        public bool UpdateSalary(double salary)
+        {
+            var parameters = new Dictionary<string, object>
+            {
+                { "@contractorId", ContractorId },
+                { "@salary", salary }
+            };
+
+            string query = "";
+            query = "UPDATE Contracts SET salary = @salary WHERE contractorId = @contractorId";
+            return InsertData(query, parameters);
+        }
+
         public bool InsertContract(Dictionary<string, object> parameters)
         {
             string query = "";
             query = "INSERT INTO Contracts (fullname, gsm, email, address, endDate, hours, salary, fonction) SELECT * FROM (SELECT @fullName AS fullname, @gsm AS gsm, @email AS email, @address AS address, @endDate AS endDate, @hours AS hours, @salary AS salary, @job AS fonction) AS tmp WHERE NOT EXISTS (SELECT 1 FROM contractor WHERE (gsm = @gsm AND (endDate = 0 OU endDate > UNIX_TIMESTAMP())));";
+            query += $"CREATE EVENT contract_{GSM.Replace(" ", "_")} ON SCHEDULE EVERY 1 MONTH DO UPDATE Contract SET salary = salary + (salary * 0.02), lastRaise = UNIX_TIMESTAMP() WHERE startDate <= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 2 YEAR)) AND (lastRaise = 0 OR lastRaise <= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 2 YEAR)));";
             return InsertData(query, parameters);
         }
 
@@ -436,7 +450,8 @@ namespace Gestionnaire
             {
                 { "@contractorId", ContractorId }
             };
-            query = "UPDATE Contracts SET endDate = UNIX_TIMESTAMP() WHERE contractorId = @contractorId";
+            query = "UPDATE Contracts SET endDate = UNIX_TIMESTAMP() WHERE contractorId = @contractorId;";
+            query += $"DROP EVENT IF EXISTS contract_{GSM.Replace(" ", "_")};";
             return InsertData(query, parameters);
         }
     }

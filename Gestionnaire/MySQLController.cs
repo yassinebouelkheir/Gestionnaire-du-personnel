@@ -38,7 +38,7 @@ namespace Gestionnaire
                 Methodes.PrintConsole(Config.sourceMySQL, "Chargement des paramètres...");
                 using var controller = new MySqlConnection(connectionString);
                 controller.Open();
-                string skeleton = ((Config.productionRun) ? (Config.skeleton) : (Config.skeleton + " " + Config.debugScript));
+                string skeleton = (Config.skeleton);
                 var cmd = new MySqlCommand(skeleton, controller);
                 _ = cmd.ExecuteNonQuery();
                 controller.Close();
@@ -49,7 +49,7 @@ namespace Gestionnaire
             }
         }
 
-        public void InsertData(string query, Dictionary<string, object> parameters)
+        public void InsertData(string query, Dictionary<string, object>? parameters = null)
         {
             using var controller = new MySqlConnection(connectionString);
             controller.Open();

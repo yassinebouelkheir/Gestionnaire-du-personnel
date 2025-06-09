@@ -1,5 +1,14 @@
 using System.Security.Cryptography;
 using System.IO;
+using System.Data;
+using PdfSharp.Pdf;
+using PdfSharp.Drawing;
+using PdfSharp.Fonts;
+using System.Globalization;
+using System.IO;
+using System.IO.Compression;
+using System.Text;
+using System.Reflection;
 
 namespace Gestionnaire
 {
@@ -41,7 +50,7 @@ namespace Gestionnaire
         public static string ReadUserInput(string text, bool ispassword = false)
         {
             string timestamp = string.IsNullOrEmpty(PrintDateTime()) ? "" : PrintDateTime();
-            if(Config.productionRun) Console.Write($"\n[Gestionnaire {timestamp}]: {text}");
+            if (Config.productionRun) Console.Write($"\n[Gestionnaire {timestamp}]: {text}");
             else Console.Write($"\n[Gestionnaire::Methodes {timestamp}]: {text}");
 
             if (!ispassword) return Console.ReadLine() ?? "";
@@ -227,5 +236,157 @@ namespace Gestionnaire
                 return false;
             }
         }
+        public static void GenerateAndZipPayslips(int contractorId = -1)
+        {
+            try
+            {
+                var payments = GetPaymentsForCurrentMonth(contractorId);
+
+                string tempFolder = Path.Combine(Path.GetTempPath(), "Fiche_de_paie_" + Guid.NewGuid());
+                Directory.CreateDirectory(tempFolder);
+
+                foreach (var payment in payments)
+                {
+                    GeneratePdfForPayment(payment, tempFolder);
+                }
+
+                string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                if (!Directory.Exists(desktopPath))
+                    desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
+
+                string zipFilePath = Path.Combine(desktopPath, $"Fiches_de_paie{DateTime.Now:yyyyMMdd_HHmmss}.zip");
+
+                if (File.Exists(zipFilePath))
+                    File.Delete(zipFilePath);
+
+                ZipFile.CreateFromDirectory(tempFolder, zipFilePath);
+                Directory.Delete(tempFolder, true);
+
+                OpenFolderAndSelectFile(zipFilePath);
+            }
+            catch (Exception ex)
+            {
+                PrintConsole(Config.sourceMethodes, ex.ToString(), true);
+            }
+        }
+
+        static List<QueryResultRow> GetPaymentsForCurrentMonth(int contractorId = -1)
+        {
+            string query = @"
+                SELECT p.*, c.fullname
+                FROM Payments p
+                JOIN Contracts c ON p.contractorId = c.contractorId
+                WHERE YEAR(p.payment_date) = @year AND MONTH(p.payment_date) = @month";
+
+            var parameters = new Dictionary<string, object>
+            {
+                ["@year"] = DateTime.Now.Year,
+                ["@month"] = DateTime.Now.Month
+            };
+
+            if (contractorId != -1)
+            {
+                query += " AND p.contractorId = @contractorId";
+                parameters["@contractorId"] = contractorId;
+            }
+
+            var payments = Program.Controller.ReadData(query, parameters);
+            return payments;
+        }
+
+        static void GeneratePdfForPayment(QueryResultRow payment, string folderPath)
+        {
+            using var document = new PdfDocument();
+            document.Info.Title = "Fiche de paie";
+
+            var page = document.AddPage();
+            using var gfx = XGraphics.FromPdfPage(page);
+
+            GlobalFontSettings.FontResolver = new MinimalFontResolver();
+
+            var titleFont = new XFont("LiberationSans", 20, XFontStyleEx.Bold);
+            var contentFont = new XFont("LiberationSans", 12, XFontStyleEx.Regular);
+
+            gfx.DrawString("Fiche de paie", titleFont, XBrushes.Black,
+                new XRect(0, 20, page.Width.Point, 40), XStringFormats.TopCenter);
+
+            DateTime paymentDate = DateTime.Parse(payment.Columns["payment_date"]);
+            DateTime periodStart = DateTime.Parse(payment.Columns["period_start"]);
+            DateTime periodEnd = DateTime.Parse(payment.Columns["period_end"]);
+
+            var lines = new List<string>
+            {
+                $"Nom complet : {payment.Columns["fullname"]}",
+                $"ID de paiement : {payment.Columns["id"]}",
+                $"ID du contractant : {payment.Columns["contractorId"]}",
+                $"Date de paiement : {paymentDate:d}",
+                $"Montant : € {payment.Columns["amount"]} net",
+                $"Début de la période : {periodStart:d}",
+                $"Fin de la période : {periodEnd:d}",
+                $"Type de travail : {payment.Columns["job_type"]}",
+                $"Jours d'absence payés : {payment.Columns["paid_absence_days"]}",
+                $"Jours d'absence non payés : {payment.Columns["unpaid_absence_days"]}"
+            };
+
+            double x = 40;
+            double y = 80;
+            double lineHeight = contentFont.GetHeight();
+
+            foreach (var line in lines)
+            {
+                gfx.DrawString(line, contentFont, XBrushes.Black, new XPoint(x, y), XStringFormats.TopLeft);
+                y += lineHeight + 2; // Add some spacing between lines
+            }
+
+            string monthName = paymentDate.ToString("MMMM", new CultureInfo("fr-FR"));
+            string fileName = $"fiche_de_paie_{monthName}_{paymentDate:yyyy}_{SafeFileName(payment.Columns["contractorId"])}.pdf";
+            string fullPath = Path.Combine(folderPath, fileName);
+
+            document.Save(fullPath);
+        }
+
+        static string SafeFileName(string name)
+        {
+            foreach (char c in Path.GetInvalidFileNameChars())
+                name = name.Replace(c, '_');
+            return name;
+        }
+
+        static void OpenFolderAndSelectFile(string filePath)
+        {
+            string folderPath = Path.GetDirectoryName(filePath) ?? "";
+
+            if (OperatingSystem.IsWindows())
+                System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{filePath}\"");
+            else if (OperatingSystem.IsMacOS())
+                System.Diagnostics.Process.Start("open", folderPath);
+            else if (OperatingSystem.IsLinux())
+                System.Diagnostics.Process.Start("xdg-open", folderPath);
+            else
+                PrintConsole(Config.sourceMethodes, "Erreur, Système d'explotation incompatible.", true);
+        }
+    }
+    public class MinimalFontResolver : IFontResolver
+    {
+        private readonly byte[] fontData;
+
+        public MinimalFontResolver()
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            Stream? fontStream = assembly.GetManifestResourceStream("Gestionnaire.fonts.LiberationSans-Regular.ttf");
+            if (fontStream == null)
+                Methodes.PrintConsole(Config.sourceMethodes, "Erreur, la police Gestionnaire.fonts.LiberationSans-Regular.ttf introuvable.", true);
+
+            using MemoryStream ms = new MemoryStream();
+            fontStream?.CopyTo(ms);
+            fontData = ms.ToArray();
+        }
+
+        public string DefaultFontName => "LiberationSans";
+
+        public byte[] GetFont(string faceName) => fontData;
+
+        public FontResolverInfo ResolveTypeface(string familyName, bool isBold, bool isItalic)
+            => new FontResolverInfo("LiberationSans");
     }
 }
