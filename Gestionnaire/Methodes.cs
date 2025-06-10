@@ -16,6 +16,13 @@ namespace Gestionnaire
     {
         public static void PrintConsole(string source, string text, bool exitMessage = false)
         {
+            /*
+                Writes a formatted message to the console.
+                In production mode, shows a generic error and exits.
+                @param source - origin file of the message
+                @param text - message content
+                @param exitMessage - if true, logs and terminates the program
+            */
             string timestamp = string.IsNullOrEmpty(PrintDateTime()) ? "" : PrintDateTime();
             if (Config.productionRun)
             {
@@ -49,6 +56,13 @@ namespace Gestionnaire
         }
         public static string ReadUserInput(string text, bool ispassword = false)
         {
+            /*
+                Prompts the user and returns the entered text.
+                Masks characters with * if ispassword is true.
+                @param text - prompt shown to the user
+                @param ispassword - true to hide input while typing
+                @return the user-entered string
+            */
             string timestamp = string.IsNullOrEmpty(PrintDateTime()) ? "" : PrintDateTime();
             if (Config.productionRun) Console.Write($"\n[Gestionnaire {timestamp}]: {text}");
             else Console.Write($"\n[Gestionnaire::Methodes {timestamp}]: {text}");
@@ -75,6 +89,10 @@ namespace Gestionnaire
         }
         public static string PrintDateTime()
         {
+            /*
+                Formats the current date/time based on Config.consoleDateTime.
+                @return formatted date/time string or empty if disabled
+            */
             string outputString = "";
             switch (Config.consoleDateTime)
             {
@@ -95,6 +113,10 @@ namespace Gestionnaire
         }
         public static void UserLogin()
         {
+            /*
+                Handles user login with limited retry attempts.
+                Prints status messages and pauses briefly on success.
+            */
             bool isCredentialsValid = false;
             int attemptCount = 0;
 
@@ -117,6 +139,116 @@ namespace Gestionnaire
             PrintConsole(Config.sourceProgram, "Connexion réussie, Veuillez Patientez...\n");
             PrintConsole(Config.sourceApplicationController, "Bienvenue au Gestionnaire du personnel v1.0");
             Thread.Sleep(1700);
+        }
+        public static bool IsNumeric(string value)
+        {
+            /*
+                Validates that the supplied string is a positive integer.
+                @param value - string to test
+                @return true if numeric and > 0, otherwise false
+            */
+            return int.TryParse(value, out int result) && result > 0;
+        }
+        public static bool IsEmail(string email)
+        {
+            /*
+                Checks whether a string is a well-formed email address.
+                @param email - email string to validate
+                @return true if valid, otherwise false
+            */
+            try
+            {
+                var addr = new System.Net.Mail.MailAddress(email);
+                return addr.Address == email;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+        public static void UploadJustificative(string fileName, string fileData)
+        {
+            /*
+                Stores a justificative PDF in the database.
+                @param fileName - logical file name
+                @param fileData - PDF data as base64 string
+            */
+            string query = "INSERT IGNORE INTO pdf_files (fileName, fileData) VALUES (@filename, @filedata)";
+            var parameters = new Dictionary<string, object>
+            {
+                { "@filename", fileName },
+                { "@filedata", fileData }
+            };
+            Program.Controller.InsertData(query, parameters);
+        }
+        public static void DownloadJustificative(string fileName)
+        {
+            /*
+                Retrieves a justificative PDF from the database and opens its folder.
+                @param fileName - name of the PDF to download
+            */
+            string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+            string path = Path.Combine(desktop, fileName);
+
+            var query = "SELECT fileData FROM PDF_files WHERE fileName = @filename";
+            var parameters = new Dictionary<string, object> { { "@filename", fileName } };
+            List<QueryResultRow> rows = Program.Controller.ReadData(query, parameters);
+
+            if (rows.Count == 0)
+            {
+                Methodes.PrintConsole(Config.sourceMethodes, "le justificative est introuvable mais il est encodé dans la table 'Absence'.", true);
+                return;
+            }
+            byte[] fileBytes = Convert.FromBase64String(rows[0]["fileData"]);
+            File.WriteAllBytes(path, fileBytes);
+
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = OperatingSystem.IsWindows() ? "explorer" :
+                        OperatingSystem.IsMacOS() ? "open" : "xdg-open",
+                Arguments = $"\"{desktop}\"",
+                UseShellExecute = true
+            };
+            System.Diagnostics.Process.Start(psi);
+        }
+
+        public static void GenerateAndZipPayslips(int contractorId = -1)
+        {
+            /*
+                Generates monthly payslip PDFs (optionally for one contractor),
+                zips them, saves the archive to the desktop, and opens the folder.
+                @param contractorId - specific contractor ID or -1 for all
+            */
+            try
+            {
+                var payments = GetPaymentsForCurrentMonth(contractorId);
+
+                string tempFolder = Path.Combine(Path.GetTempPath(), "Fiche_de_paie_" + Guid.NewGuid());
+                Directory.CreateDirectory(tempFolder);
+
+                foreach (var payment in payments)
+                {
+                    GeneratePdfForPayment(payment, tempFolder);
+                }
+
+                string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                if (!Directory.Exists(desktopPath))
+                    desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
+
+                string zipFilePath = Path.Combine(desktopPath, $"Fiches_de_paie_{DateTime.Now:yyyyMMdd_HHmmss}.zip");
+
+                if (File.Exists(zipFilePath))
+                    File.Delete(zipFilePath);
+
+                ZipFile.CreateFromDirectory(tempFolder, zipFilePath);
+                Directory.Delete(tempFolder, true);
+
+                OpenFolderAndSelectFile(zipFilePath);
+            }
+            catch (Exception ex)
+            {
+                PrintConsole(Config.sourceMethodes, ex.ToString(), true);
+            }
         }
         private static bool CheckCredential()
         {
@@ -220,57 +352,8 @@ namespace Gestionnaire
                 return false;
             }
         }
-        public static bool IsNumeric(string value)
-        {
-            return int.TryParse(value, out int result) && result > 0;
-        }
-        public static bool IsEmail(string email)
-        {
-            try
-            {
-                var addr = new System.Net.Mail.MailAddress(email);
-                return addr.Address == email;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-        public static void GenerateAndZipPayslips(int contractorId = -1)
-        {
-            try
-            {
-                var payments = GetPaymentsForCurrentMonth(contractorId);
 
-                string tempFolder = Path.Combine(Path.GetTempPath(), "Fiche_de_paie_" + Guid.NewGuid());
-                Directory.CreateDirectory(tempFolder);
-
-                foreach (var payment in payments)
-                {
-                    GeneratePdfForPayment(payment, tempFolder);
-                }
-
-                string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                if (!Directory.Exists(desktopPath))
-                    desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
-
-                string zipFilePath = Path.Combine(desktopPath, $"Fiches_de_paie{DateTime.Now:yyyyMMdd_HHmmss}.zip");
-
-                if (File.Exists(zipFilePath))
-                    File.Delete(zipFilePath);
-
-                ZipFile.CreateFromDirectory(tempFolder, zipFilePath);
-                Directory.Delete(tempFolder, true);
-
-                OpenFolderAndSelectFile(zipFilePath);
-            }
-            catch (Exception ex)
-            {
-                PrintConsole(Config.sourceMethodes, ex.ToString(), true);
-            }
-        }
-
-        static List<QueryResultRow> GetPaymentsForCurrentMonth(int contractorId = -1)
+        private static List<QueryResultRow> GetPaymentsForCurrentMonth(int contractorId = -1)
         {
             string query = @"
                 SELECT p.*, c.fullname
@@ -294,7 +377,7 @@ namespace Gestionnaire
             return payments;
         }
 
-        static void GeneratePdfForPayment(QueryResultRow payment, string folderPath)
+        private static void GeneratePdfForPayment(QueryResultRow payment, string folderPath)
         {
             using var document = new PdfDocument();
             document.Info.Title = "Fiche de paie";
@@ -345,14 +428,14 @@ namespace Gestionnaire
             document.Save(fullPath);
         }
 
-        static string SafeFileName(string name)
+        private static string SafeFileName(string name)
         {
             foreach (char c in Path.GetInvalidFileNameChars())
                 name = name.Replace(c, '_');
             return name;
         }
 
-        static void OpenFolderAndSelectFile(string filePath)
+        private static void OpenFolderAndSelectFile(string filePath)
         {
             string folderPath = Path.GetDirectoryName(filePath) ?? "";
 
@@ -366,7 +449,7 @@ namespace Gestionnaire
                 PrintConsole(Config.sourceMethodes, "Erreur, Système d'explotation incompatible.", true);
         }
     }
-    public class MinimalFontResolver : IFontResolver
+    class MinimalFontResolver : IFontResolver
     {
         private readonly byte[] fontData;
 
@@ -382,11 +465,10 @@ namespace Gestionnaire
             fontData = ms.ToArray();
         }
 
-        public string DefaultFontName => "LiberationSans";
-
         public byte[] GetFont(string faceName) => fontData;
 
         public FontResolverInfo ResolveTypeface(string familyName, bool isBold, bool isItalic)
-            => new FontResolverInfo("LiberationSans");
+            => new("LiberationSans");
     }
 }
+

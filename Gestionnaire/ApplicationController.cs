@@ -59,8 +59,7 @@ namespace Gestionnaire
                                 for (int i = 0; i < maxToShow; i++)
                                 {
                                     List<QueryResultRow> row = absence.ListAbsence;
-                                    string reason = !string.IsNullOrWhiteSpace(row[i]["reason"]) ? row[i]["reason"] : "Non spécifiée";
-                                    string doc = !string.IsNullOrWhiteSpace(row[i]["justificativeDocument"]) ? row[i]["justificativeDocument"] : "Aucun document";
+                                    string doc = !string.IsNullOrWhiteSpace(row[i]["justificativeDocument"]) ? "Déposé" : "Aucun document";
                                     string formattedDate = !string.IsNullOrWhiteSpace(row[i]["date"]) ? row[i]["date"] : "-1";
 
                                     bool parsedDate = long.TryParse(formattedDate, out long unixTimestamp);
@@ -71,19 +70,19 @@ namespace Gestionnaire
                                     }
                                     else formattedDate = "Date malformé";
 
-                                    Methodes.PrintConsole(Config.sourceApplicationController, $"- Date: {formattedDate} Raison : {reason}");
+                                    Methodes.PrintConsole(Config.sourceApplicationController, $"- Date: {formattedDate} Document : {doc}");
                                 }
                             }
                             else
                             {
                                 DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).Date;
-                                Methodes.PrintConsole(Config.sourceApplicationController, fullname + " a été absent le " + date.ToString("dd/MM/yyyy") + " Raison: " + (!string.IsNullOrWhiteSpace(absence.Reason) ? absence.Reason : "Non spécifiée") + ".\n");
+                                Methodes.PrintConsole(Config.sourceApplicationController, fullname + " a été absent le " + date.ToString("dd/MM/yyyy") + " Document: " + (!string.IsNullOrWhiteSpace(absence.JustificativeDocument) ? "Déposé" : "Aucun document") + ".\n");
                                 if (!string.IsNullOrWhiteSpace(absence.JustificativeDocument))
                                 {
                                     string response = Methodes.ReadUserInput("Est-ce que vous voulez télécharger le justificative fournis par le membre? (OUI/NON): ") ?? string.Empty;
                                     if (!string.IsNullOrWhiteSpace(response) && response.Equals("oui", StringComparison.OrdinalIgnoreCase))
                                     {
-                                        // SFTP Code
+                                        Methodes.DownloadJustificative(absence.JustificativeDocument);
                                     }
                                 }
                             }
@@ -366,6 +365,8 @@ namespace Gestionnaire
                                     TRUNCATE TABLE Training;
                                     TRUNCATE TABLE WorkTravel;
                                     TRUNCATE TABLE Contracts;
+                                    TRUNCATE TABLE Payments;
+                                    TRUNCATE TABLE PDF_files;
                                     SET FOREIGN_KEY_CHECKS = 1;";
                                 Program.Controller.InsertData(query);
                             }
@@ -583,10 +584,7 @@ namespace Gestionnaire
                                     else Methodes.PrintConsole(Config.sourceApplicationController, $"Un erreur s'est produite, Veuillez réessayer s'il vous plaît...");
                                 }
                             }
-                            else if (selectedOption == 3)
-                            {
-                                break;
-                            }
+                            else if (selectedOption == 3) break;
                             else
                             {
                                 Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, Votre choix doit être entre 1 et 3, Veuillez réssayer s'il vous plaît...");
@@ -741,7 +739,7 @@ namespace Gestionnaire
                                 ShowContinuePrompt();
                                 RunAdminService(2);
                                 break;
-                            }   
+                            }
                             else if (selectedOption == 2)
                             {
                             retryAbsenceDate: string crewMemberAbsenceDate = Methodes.ReadUserInput("Enter la date d'absence: ") ?? string.Empty;
@@ -775,8 +773,61 @@ namespace Gestionnaire
                             }
                             else if (selectedOption == 3)
                             {
-                                // SFTP Code
-                                break;
+                            retryAbsenceDate: string crewMemberAbsenceDate = Methodes.ReadUserInput("Enter la date d'absence: ") ?? string.Empty;
+                                long crewMemberUnixDate = 0;
+
+                                if (!string.IsNullOrWhiteSpace(crewMemberAbsenceDate))
+                                {
+                                    if (DateTime.TryParse(crewMemberAbsenceDate, out DateTime dateTime))
+                                    {
+                                        DateTimeOffset dto = new(dateTime.ToUniversalTime());
+                                        crewMemberUnixDate = dto.AddDays(1).ToUnixTimeSeconds();
+                                        if (dateTime > DateTime.Now)
+                                        {
+                                            Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, la date ne doit pas être dans le futur.");
+                                            goto retryAbsenceDate;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, La date doit être valide et ne doit pas être vide.");
+                                        goto retryAbsenceDate;
+                                    }
+                                }
+
+                                Absence absent = new(contract.ContractorId, crewMemberUnixDate);
+                                if (!absent.IsNull)
+                                {
+                                    Methodes.PrintConsole(Config.sourceApplicationController, "Faites glisser et déposez un fichier PDF dans cette fenêtre et appuyez sur Entrée: ");
+                                    string inputPath = Console.ReadLine()?.Trim('\'', '"') ?? "";
+                                    if (string.IsNullOrWhiteSpace(inputPath) || !File.Exists(inputPath) || !inputPath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        Methodes.PrintConsole(Config.sourceApplicationController, $"Un erreur s'est produite, Veuillez réessayer s'il vous plaît...");
+                                        ShowContinuePrompt();
+                                        RunAdminService(2);
+                                        break;
+                                    }
+                                    string fileName = $"justificative_absence_" + contract.ContractorId + "_" + absent.DateOfAbsence + ".pdf";
+                                    byte[] fileData = File.ReadAllBytes(inputPath);
+                                    string base64String = Convert.ToBase64String(fileData);
+                                    try
+                                    {
+                                        Methodes.UploadJustificative(fileName, base64String);
+                                        absent.DeclareJustificative(contract.ContractorId, fileName);
+                                        Methodes.PrintConsole(Config.sourceApplicationController, "Le justificative a été bien téléchargé et encodé dans le système.");
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Methodes.PrintConsole(Config.sourceApplicationController, ex.ToString(), true);
+                                    }
+                                }
+                                else
+                                {
+                                    Methodes.PrintConsole(Config.sourceApplicationController, "Il ne existe aucun absence enregistrée pour le date que vous avez fournis.");
+                                }
+                                ShowContinuePrompt();
+                                RunAdminService(2);
+                                break;  
                             }
                             else if (selectedOption == 4)
                             {
@@ -849,13 +900,13 @@ namespace Gestionnaire
                                 }
 
                                 var parameters = new Dictionary<string, object>
-                        {
-                            { "@contractorId", contract.ContractorId },
-                            { "@type", crewMemberTypeTraining },
-                            { "@address", crewMemberAddress },
-                            { "@formateur", crewMemberFormateur },
-                            { "@date", crewMemberUnixDate }
-                        };
+                            {
+                                { "@contractorId", contract.ContractorId },
+                                { "@type", crewMemberTypeTraining },
+                                { "@address", crewMemberAddress },
+                                { "@formateur", crewMemberFormateur },
+                                { "@date", crewMemberUnixDate }
+                            };
 
                                 bool dataInserted = training.AuthorizeTraining(parameters);
                                 if (dataInserted) Methodes.PrintConsole(Config.sourceApplicationController, $"Votre demande a été enregistré avec success.");
@@ -884,12 +935,15 @@ namespace Gestionnaire
                                 List<QueryResultRow> row = paidLeave.ListPaidLeave;
                                 for (int i = 0; i < row.Count; i++)
                                 {
-                                    _ = long.TryParse(row[i]["date"], out long unixdate);
-                                    DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).UtcDateTime;
-                                    if (date.Year == currentYear)
+                                    _ = long.TryParse(row[i]["startDate"], out long unixsdate);
+                                    _ = long.TryParse(row[i]["endDate"], out long unixedate);
+                                    DateTime sdate = DateTimeOffset.FromUnixTimeSeconds(unixsdate).UtcDateTime;
+                                    DateTime edate = DateTimeOffset.FromUnixTimeSeconds(unixedate).UtcDateTime;
+                                    TimeSpan span = edate - sdate;
+
+                                    if (sdate.Year == currentYear)
                                     {
-                                        count += (contract.EndDate - contract.StartDate) / 86400;
-                                        Console.WriteLine(count);
+                                        count += span.Days;
                                     }
                                 }
 
@@ -920,7 +974,7 @@ namespace Gestionnaire
                                 }
                                 if (DateTime.TryParse(paidLeaveStartDate, out var sd) && DateTime.TryParse(paidLeaveEndDate, out var ed))
                                 {
-                                    if (sd < DateTime.Now && ed > DateTime.Now && ed < sd)
+                                    if (sd < DateTime.Now || ed < DateTime.Now || ed <= sd)
                                     {
                                         Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, la date du début et du fin doit être dans le futur.");
                                         goto retryPaidLeave;
@@ -947,12 +1001,12 @@ namespace Gestionnaire
                                 }
 
                                 var parameters = new Dictionary<string, object>
-                        {
-                            { "@contractorId", contract.ContractorId },
-                            { "@startDate", paidLeaveUnixStartDate },
-                            { "@endDate", paidLeaveUnixEndDate },
-                            { "@reason", paidLeaveReason }
-                        };
+                            {
+                                { "@contractorId", contract.ContractorId },
+                                { "@startDate", paidLeaveUnixStartDate },
+                                { "@endDate", paidLeaveUnixEndDate },
+                                { "@reason", paidLeaveReason }
+                            };
 
                                 bool dataInserted = paidLeave.AuthorizePaidLeave(parameters);
                                 if (dataInserted) Methodes.PrintConsole(Config.sourceApplicationController, $"Votre demande a été enregistré avec success.");
@@ -963,24 +1017,24 @@ namespace Gestionnaire
                             }
                             else if (selectedOption == 6)
                             {
-                            retryWorkTravel: string retryWorkTravelStartDate = Methodes.ReadUserInput("Enter la date du début de déplacement: ") ?? string.Empty;
-                                string retryWorkTravelEndDate = Methodes.ReadUserInput("Enter la date du fin de déplacement: ") ?? string.Empty;
-                                long retryWorkTravelUnixStartDate = 0, retryWorkTravelUnixEndDate = 0;
+                            retryWorkTravel: string workTravelStartDate = Methodes.ReadUserInput("Enter la date du début de déplacement: ") ?? string.Empty;
+                                string workTravelEndDate = Methodes.ReadUserInput("Enter la date du fin de déplacement: ") ?? string.Empty;
+                                long workTravelUnixStartDate = 0, workTravelUnixEndDate = 0;
 
-                                if (string.IsNullOrWhiteSpace(retryWorkTravelStartDate) || string.IsNullOrWhiteSpace(retryWorkTravelEndDate))
+                                if (string.IsNullOrWhiteSpace(workTravelStartDate) || string.IsNullOrWhiteSpace(workTravelEndDate))
                                 {
                                     Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, Les deux date doit être valide et ne doit pas être vide.");
                                     goto retryWorkTravel;
                                 }
-                                if (DateTime.TryParse(retryWorkTravelStartDate, out var sd) && DateTime.TryParse(retryWorkTravelEndDate, out var ed))
+                                if (DateTime.TryParse(workTravelStartDate, out var sd) && DateTime.TryParse(workTravelEndDate, out var ed))
                                 {
-                                    if (sd < DateTime.Now && ed > DateTime.Now && ed < sd)
+                                    if (sd < DateTime.Now || ed < DateTime.Now || ed <= sd)
                                     {
                                         Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, la date du début et du fin doit être dans le futur.");
                                         goto retryWorkTravel;
                                     }
-                                    retryWorkTravelUnixStartDate = ((DateTimeOffset)sd).ToUnixTimeSeconds();
-                                    retryWorkTravelUnixEndDate = ((DateTimeOffset)ed).ToUnixTimeSeconds();
+                                    workTravelUnixStartDate = ((DateTimeOffset)sd).ToUnixTimeSeconds();
+                                    workTravelUnixEndDate = ((DateTimeOffset)ed).ToUnixTimeSeconds();
                                 }
 
                             retryWorkTravelAddr: string WorkTravelAddr = Methodes.ReadUserInput("Enter l'adresse du mission: ") ?? string.Empty;
@@ -998,13 +1052,13 @@ namespace Gestionnaire
                                 }
 
                                 var parameters = new Dictionary<string, object>
-                        {
-                            { "@contractorId", contract.ContractorId },
-                            { "@startDate", retryWorkTravelUnixStartDate },
-                            { "@endDate", retryWorkTravelUnixEndDate },
-                            { "@address", WorkTravelAddr },
-                            { "@description", WorkTravelDescription }
-                        };
+                            {
+                                { "@contractorId", contract.ContractorId },
+                                { "@startDate", workTravelUnixStartDate },
+                                { "@endDate", workTravelUnixEndDate },
+                                { "@address", WorkTravelAddr },
+                                { "@description", WorkTravelDescription }
+                            };
 
                                 WorkTravel worktravel = new(contract.ContractorId);
                                 bool dataInserted = worktravel.AuthorizeWorkTravel(parameters);
@@ -1046,11 +1100,11 @@ namespace Gestionnaire
                                 }
 
                                 var parameters = new Dictionary<string, object>
-                        {
-                            { "@contractorId", contract.ContractorId },
-                            { "@description", missionDescription },
-                            { "@date", missionUnixDate }
-                        };
+                                {
+                                    { "@contractorId", contract.ContractorId },
+                                    { "@description", missionDescription },
+                                    { "@date", missionUnixDate }
+                                };
 
                                 Mission mission = new(contract.ContractorId);
                                 bool dataInserted = mission.AssignMission(parameters);

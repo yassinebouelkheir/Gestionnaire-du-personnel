@@ -9,6 +9,10 @@ namespace Gestionnaire
 
         public MySQLController()
         {
+            /*
+                Constructor for MySQLController.
+                Initializes database connection and loads initial parameters.
+            */
             Initialization();
             InsertSelekton();
         }
@@ -31,7 +35,7 @@ namespace Gestionnaire
             }
         }
 
-        public void InsertSelekton()
+        private void InsertSelekton()
         {
             try
             {
@@ -51,6 +55,12 @@ namespace Gestionnaire
 
         public void InsertData(string query, Dictionary<string, object>? parameters = null)
         {
+            /*
+                Executes an insert or update query with optional parameters.
+                Prints the number of affected rows in development mode.
+                @param query - SQL insert/update string
+                @param parameters - dictionary of query parameters (nullable)
+            */
             using var controller = new MySqlConnection(connectionString);
             controller.Open();
             var command = new MySqlCommand(query, controller);
@@ -69,12 +79,19 @@ namespace Gestionnaire
             if (!Config.productionRun)
             {
                 if (queryState == 1) Methodes.PrintConsole(Config.sourceMySQL, "La ligne a été insérée/modifié dans la base de données.");
-                else Methodes.PrintConsole(Config.sourceMySQL, "La ligne n'a pas été insérée/modifié.");   
+                else Methodes.PrintConsole(Config.sourceMySQL, $"Total de {queryState} ligne a été affectée.");   
             }
         }
 
         public List<QueryResultRow> ReadData(string query, Dictionary<string, object> parameters)
         {
+            /*
+                Executes a select query with parameters and returns the results as a list of rows.
+                Each row contains column-value pairs as strings.
+                @param query - SQL select string
+                @param parameters - dictionary of query parameters
+                @return list of QueryResultRow containing result set
+            */
             var result = new List<QueryResultRow>();
 
             if (string.IsNullOrWhiteSpace(query))

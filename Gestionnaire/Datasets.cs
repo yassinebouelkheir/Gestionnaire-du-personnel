@@ -17,6 +17,12 @@ namespace Gestionnaire
     {
         public List<QueryResultRow> FetchData(string query, Dictionary<string, object> parameters)
         {
+            /*
+                Executes a query with given SQL and parameters.
+                Returns a list of result rows or empty list on error.
+                @param query - SQL query string
+                @param parameters - query parameters
+            */
             try
             {
                 return Program.Controller.ReadData(query, parameters);
@@ -30,6 +36,12 @@ namespace Gestionnaire
 
         public bool InsertData(string query, Dictionary<string, object> parameters)
         {
+            /*
+                Executes an insert query with parameters.
+                Returns true if successful, false on error.
+                @param query - SQL insert string
+                @param parameters - query parameters
+            */
             try
             {
                 Program.Controller.InsertData(query, parameters);
@@ -78,17 +90,30 @@ namespace Gestionnaire
         }
         public bool InsertNewJob(string jobName, int authorityLevel)
         {
+            /*
+                Inserts a new job into the database if it doesn't exist.
+                @param jobName - name of the job
+                @param authorityLevel - authority level of the job
+                @return true if insertion is successful
+            */
             string query = "";
             var parameters = new Dictionary<string, object>
             {
                 { "@jobName", jobName },
                 { "@authorityLevel", authorityLevel }
             };
-            query = "INSERT INTO Jobs (name, authorityLevel) SELECT * FROM (SELECT @jobName AS name, @authorityLevel AS authorityLevel) AS tmp WHERE NOT EXISTS (SELECT 1 FROM Jobs WHERE name = @jobName)";
+            query = "INSERT IGNORE INTO Jobs (name, authorityLevel) SELECT * FROM (SELECT @jobName AS name, @authorityLevel AS authorityLevel) AS tmp WHERE NOT EXISTS (SELECT 1 FROM Jobs WHERE name = @jobName)";
             return InsertData(query, parameters);
         }
+        
         public bool ModifyJob(string jobName, int authorityLevel)
         {
+            /*
+                Updates the job's name or authority level.
+                @param jobName - new job name (use "0" to skip)
+                @param authorityLevel - new authority level (use 1 or less to skip)
+                @return true if update is performed
+            */
             int paramsCount = 0;
             string query = "";
             var parameters = new Dictionary<string, object> {};
@@ -115,6 +140,10 @@ namespace Gestionnaire
         }
         public bool DeleteJob()
         {
+            /*
+                Deletes the current job from the database.
+                @return true if deletion is successful
+            */
             string query = "";
             var parameters = new Dictionary<string, object>
             {
@@ -129,17 +158,23 @@ namespace Gestionnaire
     {
         public bool IsAbsent { get; private set; }
         public List<QueryResultRow> ListAbsence { get; private set; }
-        public string Reason { get; private set; } = "";
         public string JustificativeDocument { get; private set; } = "";
+        public long DateOfAbsence { get; private set; }
         public bool IsNull { get; private set; } = true;
 
         public Absence(int contractorId, long date = -1)
         {
+            /*
+                Loads absence information for a contractor.
+                If a date is provided, fetches only absences for that day.
+                @param contractorId - ID of the contractor
+                @param date - (optional) specific date in Unix timestamp
+            */
             var parameters = new Dictionary<string, object>
             {
                 { "@contractorId", contractorId },
             };
-            string query = "SELECT reason, justificativeDocument, date FROM Absences WHERE contractorId = @contractorId";
+            string query = "SELECT justificativeDocument, date FROM Absences WHERE contractorId = @contractorId";
             if (date > 0)
             {
                 var dateTime = DateTimeOffset.FromUnixTimeSeconds(date).UtcDateTime.Date;
@@ -157,13 +192,20 @@ namespace Gestionnaire
             if (ListAbsence.Count > 0)
             {
                 IsAbsent = true;
-                Reason = ListAbsence[0]["reason"];
                 JustificativeDocument = ListAbsence[0]["justificativeDocument"];
+                _ = long.TryParse(ListAbsence[0]["date"], out long unixDate);
+                DateOfAbsence = unixDate;
                 IsNull = false;
             }
         }
         public bool DeclareAbsence(int contractorId, long date)
         {
+            /*
+                Declares an absence for a contractor on a specific date.
+                @param contractorId - ID of the contractor
+                @param date - absence date in Unix timestamp
+                @return true if the insert succeeds, false otherwise
+            */
             string query = "";
             var parameters = new Dictionary<string, object>
             {
@@ -171,6 +213,24 @@ namespace Gestionnaire
                 { "@date", date }
             };
             query = "INSERT IGNORE INTO Absences (contractorId, date) VALUES (@contractorId, @date)";
+            return InsertData(query, parameters);
+        }
+        public bool DeclareJustificative(int contractorId, string justificative)
+        {
+            /*
+                Attaches a justificative document to the contractor's absence record.
+                @param contractorId - ID of the contractor
+                @param justificative - document filename or reference
+                @return true if update is successful, false otherwise
+            */
+            string query = "";
+            var parameters = new Dictionary<string, object>
+            {
+                { "@contractorId", contractorId },
+                { "@justificativeDocument", justificative },
+                { "@date", DateOfAbsence }
+            };
+            query = "UPDATE Absences SET justificativeDocument = @justificativeDocument WHERE contractorId = @contractorId AND date = @date";
             return InsertData(query, parameters);
         }
     }
@@ -188,6 +248,12 @@ namespace Gestionnaire
 
         public PaidLeave(int contractorId, long date = -1)
         {
+            /*
+                Loads paid leave information for a contractor.
+                If a date is provided, filters results to relevant range.
+                @param contractorId - ID of the contractor
+                @param date - (optional) date to check paid leave status
+            */
             var parameters = new Dictionary<string, object>
             {
                 { "@contractorId", contractorId }
@@ -224,6 +290,11 @@ namespace Gestionnaire
         }
         public bool AuthorizePaidLeave(Dictionary<string, object> parameters)
         {
+            /*
+                Inserts a new paid leave entry for a contractor.
+                @param parameters - dictionary of query parameters including dates and reason
+                @return true if insertion is successful, false otherwise
+            */
             string query = "";
             query = "INSERT IGNORE INTO PaidLeave (contractorId, startDate, endDate, reason) VALUES (@contractorId, @startDate, @endDate, @reason)";
             return InsertData(query, parameters);
@@ -241,6 +312,12 @@ namespace Gestionnaire
 
         public Training(int contractorId, long date = -1)
         {
+            /*
+                Loads training session information for a contractor.
+                If a date is provided, checks if training exists on that date.
+                @param contractorId - ID of the contractor
+                @param date - (optional) date to filter training records
+            */
             var parameters = new Dictionary<string, object>
             {
                 { "@contractorId", contractorId }
@@ -271,6 +348,11 @@ namespace Gestionnaire
         }
         public bool AuthorizeTraining(Dictionary<string, object> parameters)
         {
+            /*
+                Adds a new training session record for a contractor.
+                @param parameters - dictionary including type, address, trainer, and date
+                @return true if insertion is successful, false otherwise
+            */
             string query = "";
             query = "INSERT IGNORE INTO Training (contractorId, type, address, formateur, date) VALUES (@contractorId, @type, @address, @formateur, @date)";
             return InsertData(query, parameters);
@@ -287,6 +369,12 @@ namespace Gestionnaire
 
         public Mission(int contractorId, long date = -1)
         {
+            /*
+                Loads mission data for a contractor.
+                If a date is provided, checks if a mission exists on that date.
+                @param contractorId - ID of the contractor
+                @param date - (optional) date in Unix timestamp
+            */
             var parameters = new Dictionary<string, object> { { "@contractorId", contractorId } };
             string query = "SELECT description, date FROM Mission WHERE contractorId = @contractorId";
 
@@ -314,6 +402,11 @@ namespace Gestionnaire
         }
         public bool AssignMission(Dictionary<string, object> parameters)
         {
+            /*
+                Assigns a mission to a contractor.
+                @param parameters - dictionary containing description and date
+                @return true if insertion is successful, false otherwise
+            */
             string query = "";
             query = "INSERT IGNORE INTO Mission (contractorId, description, date) VALUES (@contractorId, @description, @date)";
             return InsertData(query, parameters);
@@ -334,6 +427,12 @@ namespace Gestionnaire
 
         public WorkTravel(int contractorId, long date = -1)
         {
+            /*
+                Loads work travel information for a contractor.
+                If a date is provided, checks if travel overlaps that date.
+                @param contractorId - ID of the contractor
+                @param date - (optional) date to check travel status
+            */
             var parameters = new Dictionary<string, object> { { "@contractorId", contractorId } };
             string query = "SELECT startDate, endDate, address, description FROM WorkTravel WHERE contractorId = @contractorId";
 
@@ -368,6 +467,11 @@ namespace Gestionnaire
         }
         public bool AuthorizeWorkTravel(Dictionary<string, object> parameters)
         {
+            /*
+                Inserts a new work travel entry for a contractor.
+                @param parameters - dictionary including dates, address, and description
+                @return true if insertion is successful, false otherwise
+            */
             string query = "";
             query = "INSERT IGNORE INTO WorkTravel (contractorId, startDate, endDate, address, description) VALUES (@contractorId, @startDate, @endDate, @address, @description)";
             return InsertData(query, parameters);
@@ -390,6 +494,10 @@ namespace Gestionnaire
 
         public Contracts(string fullName = "")
         {
+            /*
+                Loads contract data for a contractor based on full name.
+                @param fullName - (optional) full name of the contractor
+            */
             if (!string.IsNullOrWhiteSpace(fullName))
             {
                 var parameters = new Dictionary<string, object> { { "@name", fullName } };
@@ -421,6 +529,11 @@ namespace Gestionnaire
         }
         public bool UpdateSalary(double salary)
         {
+            /*
+                Updates the salary of a contractor.
+                @param salary - new salary value
+                @return true if update is successful, false otherwise
+            */
             var parameters = new Dictionary<string, object>
             {
                 { "@contractorId", ContractorId },
@@ -434,6 +547,11 @@ namespace Gestionnaire
 
         public bool InsertContract(Dictionary<string, object> parameters)
         {
+            /*
+                Inserts a new contract and creates a recurring raise mysql event.
+                @param parameters - dictionary containing contract details
+                @return true if insertion is successful, false otherwise
+            */
             string query = "";
             query = "INSERT INTO Contracts (fullname, gsm, email, address, endDate, hours, salary, fonction) SELECT * FROM (SELECT @fullName AS fullname, @gsm AS gsm, @email AS email, @address AS address, @endDate AS endDate, @hours AS hours, @salary AS salary, @job AS fonction) AS tmp WHERE NOT EXISTS (SELECT 1 FROM contractor WHERE (gsm = @gsm AND (endDate = 0 OU endDate > UNIX_TIMESTAMP())));";
             query += $"CREATE EVENT contract_{GSM.Replace(" ", "_")} ON SCHEDULE EVERY 1 MONTH DO UPDATE Contract SET salary = salary + (salary * 0.02), lastRaise = UNIX_TIMESTAMP() WHERE startDate <= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 2 YEAR)) AND (lastRaise = 0 OR lastRaise <= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 2 YEAR)));";
@@ -442,6 +560,11 @@ namespace Gestionnaire
 
         public bool EndContract()
         {
+            /*
+                Ends an active contract by setting the end date.
+                Also removes the associated salary raise event.
+                @return true if update and event removal are successful, false otherwise
+            */
             string query = "";
             var parameters = new Dictionary<string, object>
             {
