@@ -12,7 +12,7 @@ using System.Reflection;
 
 namespace Gestionnaire
 {
-    class Methodes
+    public class Methodes
     {
         public static void PrintConsole(string source, string text, bool exitMessage = false)
         {
@@ -87,14 +87,15 @@ namespace Gestionnaire
             Console.WriteLine();
             return input;
         }
-        public static string PrintDateTime()
+        public static string PrintDateTime(int formatDateTime = -1)
         {
             /*
                 Formats the current date/time based on Config.consoleDateTime.
                 @return formatted date/time string or empty if disabled
             */
             string outputString = "";
-            switch (Config.consoleDateTime)
+            int optionValue = ((formatDateTime == -1) ? Config.consoleDateTime : formatDateTime);
+            switch (optionValue)
             {
                 case 1:
                     outputString = DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss");
