@@ -282,12 +282,6 @@ namespace Gestionnaire
             (9, 1747500000, NULL),
             (10, 1749000000, NULL);
 
-            INSERT IGNORE INTO `Jobs` (id, authorityLevel, name) VALUES
-            (1, 1, 'Administrateur'),
-            (2, 2, 'Employé'),
-            (3, 3, 'Ouvrier'),
-            (4, 4, 'Consultant');
-
             INSERT IGNORE INTO `Mission` (contractorId, description, date) VALUES
             (1, 'Correction du bug de connexion', 1762000000),
             (2, 'Developpement de la page d accueil', 1762086400),

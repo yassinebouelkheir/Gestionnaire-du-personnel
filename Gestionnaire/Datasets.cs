@@ -120,14 +120,15 @@ namespace Gestionnaire
             query = "UPDATE Jobs SET ";
             if (jobName != "0")
             {
-                query += "name = @jobName ";
+                query += "name = @jobName";
                 parameters["@jobName"] = jobName;
                 Name = jobName;
                 paramsCount += 1;
             }
             if (authorityLevel > 1)
             {
-                query += "authorityLevel = @authorityLevel ";
+                if (paramsCount > 0) query += ", authorityLevel = @authorityLevel ";
+                else query += "authorityLevel = @authorityLevel ";
                 parameters["@authorityLevel"] = authorityLevel;
                 AuthorityLevel = authorityLevel;
                 paramsCount += 1;

@@ -14,6 +14,19 @@ namespace Gestionnaire
 {
     public class Methodes
     {
+        public interface IExceptionGenerator
+        {
+            void GenerateException(string source, string message);
+        }
+        public class GestionnaireException(string message) : Exception(message) { }
+        public class ExceptionGenerator : IExceptionGenerator
+        {
+            public void GenerateException(string source, string message)
+            {
+                throw new GestionnaireException(message);
+            }
+        }
+
         public static void PrintConsole(string source, string text, bool exitMessage = false)
         {
             /*
@@ -50,6 +63,16 @@ namespace Gestionnaire
 
             if (exitMessage)
             {
+                ExceptionGenerator Generator = new();
+                try
+                {
+                    Generator.GenerateException(Config.sourceMethodes, text);
+                }
+                catch (GestionnaireException ex)
+                {
+                    Console.WriteLine($"[Gestionnaire::{source} {timestamp} Exception capturée]: " + ex.Message);
+                }
+
                 string logMessage = $"[Gestionnaire::{source} {timestamp}]: {text}";
                 Log(logMessage);
             }
@@ -63,28 +86,39 @@ namespace Gestionnaire
                 @param ispassword - true to hide input while typing
                 @return the user-entered string
             */
+            var input = "";
             string timestamp = string.IsNullOrEmpty(PrintDateTime()) ? "" : PrintDateTime();
             if (Config.productionRun) Console.Write($"\n[Gestionnaire {timestamp}]: {text}");
             else Console.Write($"\n[Gestionnaire::Methodes {timestamp}]: {text}");
 
-            if (!ispassword) return Console.ReadLine() ?? "";
-
-            var input = "";
-            ConsoleKeyInfo key;
-            while ((key = Console.ReadKey(true)).Key != ConsoleKey.Enter)
+            if (Config.productionRun || Program.TestProgression > 59)
             {
-                if (key.Key == ConsoleKey.Backspace && input.Length > 0)
+                if (!ispassword) return Console.ReadLine() ?? "";
+
+                input = "";
+                ConsoleKeyInfo key;
+                while ((key = Console.ReadKey(true)).Key != ConsoleKey.Enter)
                 {
-                    input = input[..^1];
-                    Console.Write("\b \b");
+                    if (key.Key == ConsoleKey.Backspace && input.Length > 0)
+                    {
+                        input = input[..^1];
+                        Console.Write("\b \b");
+                    }
+                    else if (!char.IsControl(key.KeyChar))
+                    {
+                        input += key.KeyChar;
+                        Console.Write("*");
+                    }
                 }
-                else if (!char.IsControl(key.KeyChar))
-                {
-                    input += key.KeyChar;
-                    Console.Write("*");
-                }
+                Console.WriteLine();
             }
-            Console.WriteLine();
+            else
+            {
+                TestsAgent Agent = new();
+                input = Agent.RunTest(Program.TestProgression);
+                Program.TestProgression += 1;
+                Console.Write(input + "\n");
+            }
             return input;
         }
         public static string PrintDateTime(int formatDateTime = -1)
@@ -95,21 +129,13 @@ namespace Gestionnaire
             */
             string outputString = "";
             int optionValue = ((formatDateTime == -1) ? Config.consoleDateTime : formatDateTime);
-            switch (optionValue)
+            outputString = optionValue switch
             {
-                case 1:
-                    outputString = DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss");
-                    break;
-                case 2:
-                    outputString = DateTime.Now.ToString("HH:mm:ss");
-                    break;
-                case 3:
-                    outputString = DateTime.Now.ToString("yyyy/MM/dd");
-                    break;
-                default:
-                    outputString = string.Empty;
-                    break;
-            }
+                1 => DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss"),
+                2 => DateTime.Now.ToString("HH:mm:ss"),
+                3 => DateTime.Now.ToString("yyyy/MM/dd"),
+                _ => string.Empty,
+            };
             return outputString;
         }
         public static void UserLogin()
@@ -139,7 +165,6 @@ namespace Gestionnaire
             }
             PrintConsole(Config.sourceProgram, "Connexion réussie, Veuillez Patientez...\n");
             PrintConsole(Config.sourceApplicationController, "Bienvenue au Gestionnaire du personnel v1.0");
-            Thread.Sleep(1700);
         }
         public static bool IsNumeric(string value)
         {
@@ -253,9 +278,9 @@ namespace Gestionnaire
         }
         private static bool CheckCredential()
         {
-            string username = Methodes.ReadUserInput("Nom d'utilisateur : ") ?? string.Empty;
-            string password = Methodes.ReadUserInput("Mot de passe : ", true) ?? string.Empty;
-            Thread.Sleep(1000);
+            Methodes UserConsole = new();
+            string username = ReadUserInput("Nom d'utilisateur : ") ?? string.Empty;
+            string password = ReadUserInput("Mot de passe : ", true) ?? string.Empty;
 
             if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
             {
@@ -320,18 +345,6 @@ namespace Gestionnaire
                 return false;
             }
         }
-        private static void Log(string logMessage)
-        {
-            string logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "error_log.txt");
-            File.AppendAllText(logPath, logMessage + "\n\n");
-
-            if (!Config.productionRun)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine(logMessage);
-                Console.ResetColor();
-            }
-        }
         private static bool VerifyPassword(string password, string storedHash, string storedSalt)
         {
             try
@@ -353,7 +366,6 @@ namespace Gestionnaire
                 return false;
             }
         }
-
         private static List<QueryResultRow> GetPaymentsForCurrentMonth(int contractorId = -1)
         {
             string query = @"
@@ -377,7 +389,6 @@ namespace Gestionnaire
             var payments = Program.Controller.ReadData(query, parameters);
             return payments;
         }
-
         private static void GeneratePdfForPayment(QueryResultRow payment, string folderPath)
         {
             using var document = new PdfDocument();
@@ -428,14 +439,12 @@ namespace Gestionnaire
 
             document.Save(fullPath);
         }
-
         private static string SafeFileName(string name)
         {
             foreach (char c in Path.GetInvalidFileNameChars())
                 name = name.Replace(c, '_');
             return name;
         }
-
         private static void OpenFolderAndSelectFile(string filePath)
         {
             string folderPath = Path.GetDirectoryName(filePath) ?? "";
@@ -448,6 +457,18 @@ namespace Gestionnaire
                 System.Diagnostics.Process.Start("xdg-open", folderPath);
             else
                 PrintConsole(Config.sourceMethodes, "Erreur, Système d'explotation incompatible.", true);
+        }
+        private static void Log(string logMessage)
+        {
+            string logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "error_log.txt");
+            File.AppendAllText(logPath, logMessage + "\n\n");
+
+            if (!Config.productionRun)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine(logMessage);
+                Console.ResetColor();
+            }
         }
     }
     class MinimalFontResolver : IFontResolver

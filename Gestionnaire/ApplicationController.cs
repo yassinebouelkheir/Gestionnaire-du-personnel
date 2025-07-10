@@ -5,13 +5,17 @@ namespace Gestionnaire
     partial class ApplicationController
     {
         private readonly string ErrorMessage = "";
+        private readonly Methodes UserConsole = new();
         public ApplicationController()
         {
             while (true)
             {
-                Console.Clear();
-                Methodes.PrintConsole(Config.sourceApplicationController, "--- Menu Principal" + (Config.productionRun ? "" : " - Mode Testeur activé"));
-                Methodes.PrintConsole(Config.sourceApplicationController, "S'il vous plaît, Entrer le numéro du service que vous voulez accèder:\n");
+                if (Config.productionRun)
+                {
+                    Console.Clear();
+                    Methodes.PrintConsole(Config.sourceApplicationController, "\n--- Menu Principal --- Gestionnaire du personnel v 1.0");
+                    Methodes.PrintConsole(Config.sourceApplicationController, "S'il vous plaît, Entrer le numéro du service que vous voulez accèder:\n");
+                }
                 Methodes.PrintConsole(Config.sourceApplicationController, "1. L'absence/présence d'un membre");
                 Methodes.PrintConsole(Config.sourceApplicationController, "2. Les membres en congé");
                 Methodes.PrintConsole(Config.sourceApplicationController, "3. Les membres formation");
@@ -28,7 +32,7 @@ namespace Gestionnaire
                 else ErrorMessage = "Erreur, Votre choix doit être entre 1 et 7, Veuillez réssayer s'il vous plaît...";
             }
         }
-        private static string RunService(int service)
+        private string RunService(int service)
         {
             Console.WriteLine("\n");
             switch (service)
@@ -318,7 +322,6 @@ namespace Gestionnaire
                     {
                         int codePINAttempts = 0;
                         retryCodePIN: string adminPanelPIN = Methodes.ReadUserInput("Enter le code PIN requis pour accéder à cette option: ", true) ?? string.Empty;
-                        Thread.Sleep(1000);
                         codePINAttempts += 1;
                         _ = int.TryParse(adminPanelPIN, out int ParsedPIN);
                         if (Config.adminSettingsPIN == ParsedPIN) {
@@ -342,9 +345,12 @@ namespace Gestionnaire
                     case 8:
                     {
                         if (Config.productionRun) return "Erreur, Votre choix doit être entre 1 et 7, Veuillez réssayer s'il vous plaît...";
-                        Console.Clear();
-                        Methodes.PrintConsole(Config.sourceApplicationController, "--- Debug mode - Gestionnaire du personnel v1.0");
-                        Methodes.PrintConsole(Config.sourceApplicationController, $"- MySQL Server IP: {Config.mysqlServer}:{Config.mysqlPort}");
+                        if (Config.productionRun)
+                        {
+                            Console.Clear();
+                            Methodes.PrintConsole(Config.sourceApplicationController, "\n--- Debug mode - Gestionnaire du personnel v1.0");
+                            Methodes.PrintConsole(Config.sourceApplicationController, $"- MySQL Server IP: {Config.mysqlServer}:{Config.mysqlPort}");
+                        }
                         Methodes.PrintConsole(Config.sourceApplicationController, "1. Remplir la base de donnée avec un script de test");
                         Methodes.PrintConsole(Config.sourceApplicationController, "2. Vider les tables de la base de donnée (sauf jobs et users)");
                         Methodes.PrintConsole(Config.sourceApplicationController, "3. Générer les salaires dans la table 'payments'");
@@ -384,7 +390,7 @@ namespace Gestionnaire
             }
             return "";
         }
-        private static void GetData(out string contractorName, out int contractorId, out long unixdate)
+        private void GetData(out string contractorName, out int contractorId, out long unixdate)
         {
             contractorName = Methodes.ReadUserInput("Enter le nom et prénom du membre ciblé(e): ") ?? string.Empty;
             string date = Methodes.ReadUserInput("Enter une date précise (facultative) (dd/mm/aaaa): ") ?? string.Empty;
@@ -413,16 +419,18 @@ namespace Gestionnaire
             {
                 unixdate = -1;
             }
-            Thread.Sleep(1000);
         }
-        private static void AdministrationPanel()
+        private void AdministrationPanel()
         {
             string ErrorMessage = "";
             while (true)
             {
-                Console.Clear();
-                Methodes.PrintConsole(Config.sourceApplicationController, "--- Administration Général");
-                Methodes.PrintConsole(Config.sourceApplicationController, "S'il vous plaît, Entrer le numéro du service que vous voulez:\n");
+                if (Config.productionRun)
+                {
+                    Console.Clear();
+                    Methodes.PrintConsole(Config.sourceApplicationController, "\n--- Administration Général");
+                    Methodes.PrintConsole(Config.sourceApplicationController, "S'il vous plaît, Entrer le numéro du service que vous voulez:\n");
+                }
                 Methodes.PrintConsole(Config.sourceApplicationController, "1. Gérer les fonctions et leur barèmes");
                 Methodes.PrintConsole(Config.sourceApplicationController, "2. Gérer les membres de personnel");
                 Methodes.PrintConsole(Config.sourceApplicationController, "3. Revenir au menu principal");
@@ -438,16 +446,20 @@ namespace Gestionnaire
                 }
             }
         }
-        private static string RunAdminService(int service)
+        private string RunAdminService(int service)
         {
             Console.WriteLine("\n");
             switch (service)
             {
                 case 1:
                     {
-                        retryJobsManagement:Console.Clear();
-                        Methodes.PrintConsole(Config.sourceApplicationController, "--- Gestion des fonctions");
-                        Methodes.PrintConsole(Config.sourceApplicationController, "S'il vous plaît, Entrer le numéro du service que vous voulez:\n");
+                        retryJobsManagement:
+                        if (Config.productionRun)
+                        {
+                            Console.Clear();
+                            Methodes.PrintConsole(Config.sourceApplicationController, "\n--- Gestion des fonctions");
+                            Methodes.PrintConsole(Config.sourceApplicationController, "S'il vous plaît, Entrer le numéro du service que vous voulez:\n");
+                        }
                         Methodes.PrintConsole(Config.sourceApplicationController, "1. Voir les fonctions actuelles et leur barrèmes");
                         Methodes.PrintConsole(Config.sourceApplicationController, "2. Ajouter une fonction");
                         Methodes.PrintConsole(Config.sourceApplicationController, "3. Gérer une fonction");
@@ -464,9 +476,13 @@ namespace Gestionnaire
                     }
                 case 2:
                     {
-                        retryStaffManagement:Console.Clear();
-                        Methodes.PrintConsole(Config.sourceApplicationController, "--- Gestion des membres");
-                        Methodes.PrintConsole(Config.sourceApplicationController, "S'il vous plaît, Entrer le numéro du service que vous voulez:\n");
+                        retryStaffManagement:
+                        if (Config.productionRun)
+                        {
+                            Console.Clear();
+                            Methodes.PrintConsole(Config.sourceApplicationController, "\n--- Gestion des membres");
+                            Methodes.PrintConsole(Config.sourceApplicationController, "S'il vous plaît, Entrer le numéro du service que vous voulez:\n");
+                        }
                         Methodes.PrintConsole(Config.sourceApplicationController, "1. Ajouter un nouveau membre du personnel");
                         Methodes.PrintConsole(Config.sourceApplicationController, "2. Gérer le contrat d'un membre existant");
                         Methodes.PrintConsole(Config.sourceApplicationController, "3. Revenir au menu précédent");
@@ -549,9 +565,13 @@ namespace Gestionnaire
                         }
                         else
                         {
-                            Console.Clear();
-                        retrySelectOption: Methodes.PrintConsole(Config.sourceApplicationController, "--- Gestion des fonctions");
-                            Methodes.PrintConsole(Config.sourceApplicationController, "S'il vous plaît, Entrer le numéro du service que vous voulez:\n");
+                        retrySelectOption:
+                            if (Config.productionRun)
+                            {
+                                Console.Clear();
+                                Methodes.PrintConsole(Config.sourceApplicationController, "\n--- Gestion des fonctions");
+                                Methodes.PrintConsole(Config.sourceApplicationController, "S'il vous plaît, Entrer le numéro du service que vous voulez:\n");
+                            }
                             Methodes.PrintConsole(Config.sourceApplicationController, $"1. Modifier la fonction {job.Name}");
                             Methodes.PrintConsole(Config.sourceApplicationController, $"2. Supprimer la fonction {job.Name}");
                             Methodes.PrintConsole(Config.sourceApplicationController, "3. Revenir au menu précédent");
@@ -694,38 +714,42 @@ namespace Gestionnaire
                     }
                 case 7:
                     {
-                    retryCrewMemberName: string crewMemberName = Methodes.ReadUserInput("Entrer le nom complète du membre que vous souhaiter gérer: ") ?? string.Empty;
-                    if (string.IsNullOrWhiteSpace(crewMemberName) || crewMemberName.Length < 8)
-                    {
-                        Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, Le nom complète doit avoir au moins 8 caractères et ne doit pas être vide.");
-                        goto retryCrewMemberName;
-                    }
-                    string cleanedName = MyRegex().Replace(crewMemberName.Trim(), " "); 
-                    Contracts contract = new(cleanedName);
+                        retryCrewMemberName: string crewMemberName = Methodes.ReadUserInput("Entrer le nom complète du membre que vous souhaiter gérer: ") ?? string.Empty;
+                        if (string.IsNullOrWhiteSpace(crewMemberName) || crewMemberName.Length < 8)
+                        {
+                            Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, Le nom complète doit avoir au moins 8 caractères et ne doit pas être vide.");
+                            goto retryCrewMemberName;
+                        }
+                        string cleanedName = MyRegex().Replace(crewMemberName.Trim(), " "); 
+                        Contracts contract = new(cleanedName);
 
-                    if (contract.IsNull)
-                    {
-                        Methodes.PrintConsole(Config.sourceApplicationController, $"Il ne existe aucune contract actif pour {crewMemberName}.");
-                        ShowContinuePrompt();
-                        RunAdminService(2);
-                        break;
-                    }
-                    else
-                    {
-                        Console.Clear();
-                    retrySelectOption: Methodes.PrintConsole(Config.sourceApplicationController, $"--- Gestion du contrat de {contract.Fullname}");
-                        Methodes.PrintConsole(Config.sourceApplicationController, "S'il vous plaît, Entrer le numéro du service que vous voulez:\n");
-                        Methodes.PrintConsole(Config.sourceApplicationController, "1. Mettre en fin le contrat.");
-                        Methodes.PrintConsole(Config.sourceApplicationController, "2. Déclarer un absence");
-                        Methodes.PrintConsole(Config.sourceApplicationController, "3. Déposer un justificative d'absence");
-                        Methodes.PrintConsole(Config.sourceApplicationController, "4. Autoriser une formation");
-                        Methodes.PrintConsole(Config.sourceApplicationController, "5. Autoriser un congé payé");
-                        Methodes.PrintConsole(Config.sourceApplicationController, "6. Autoriser un déplacement");
-                        Methodes.PrintConsole(Config.sourceApplicationController, "7. Assigner une mission");
-                        Methodes.PrintConsole(Config.sourceApplicationController, "8. Télécharger son fiche de paie");
-                        Methodes.PrintConsole(Config.sourceApplicationController, "9. Revenir au menu précédent");
-                        string selectOption = Methodes.ReadUserInput("Votre choix (1-9): ") ?? string.Empty;
-                        _ = int.TryParse(selectOption, out int selectedOption);
+                        if (contract.IsNull)
+                        {
+                            Methodes.PrintConsole(Config.sourceApplicationController, $"Il ne existe aucune contract actif pour {crewMemberName}.");
+                            ShowContinuePrompt();
+                            RunAdminService(2);
+                            break;
+                        }
+                        else
+                        {
+                        retrySelectOption:
+                        if (Config.productionRun)
+                        {
+                            Console.Clear();
+                            Methodes.PrintConsole(Config.sourceApplicationController, $"\n--- Gestion du contrat de {contract.Fullname}");
+                            Methodes.PrintConsole(Config.sourceApplicationController, "S'il vous plaît, Entrer le numéro du service que vous voulez:\n");
+                        }
+                            Methodes.PrintConsole(Config.sourceApplicationController, "1. Mettre en fin le contrat.");
+                            Methodes.PrintConsole(Config.sourceApplicationController, "2. Déclarer un absence");
+                            Methodes.PrintConsole(Config.sourceApplicationController, "3. Déposer un justificative d'absence");
+                            Methodes.PrintConsole(Config.sourceApplicationController, "4. Autoriser une formation");
+                            Methodes.PrintConsole(Config.sourceApplicationController, "5. Autoriser un congé payé");
+                            Methodes.PrintConsole(Config.sourceApplicationController, "6. Autoriser un déplacement");
+                            Methodes.PrintConsole(Config.sourceApplicationController, "7. Assigner une mission");
+                            Methodes.PrintConsole(Config.sourceApplicationController, "8. Télécharger son fiche de paie");
+                            Methodes.PrintConsole(Config.sourceApplicationController, "9. Revenir au menu précédent");
+                            string selectOption = Methodes.ReadUserInput("Votre choix (1-9): ") ?? string.Empty;
+                            _ = int.TryParse(selectOption, out int selectedOption);
 
                             if (selectedOption == 1)
                             {
@@ -827,7 +851,7 @@ namespace Gestionnaire
                                 }
                                 ShowContinuePrompt();
                                 RunAdminService(2);
-                                break;  
+                                break;
                             }
                             else if (selectedOption == 4)
                             {
@@ -900,13 +924,13 @@ namespace Gestionnaire
                                 }
 
                                 var parameters = new Dictionary<string, object>
-                            {
-                                { "@contractorId", contract.ContractorId },
-                                { "@type", crewMemberTypeTraining },
-                                { "@address", crewMemberAddress },
-                                { "@formateur", crewMemberFormateur },
-                                { "@date", crewMemberUnixDate }
-                            };
+                                {
+                                    { "@contractorId", contract.ContractorId },
+                                    { "@type", crewMemberTypeTraining },
+                                    { "@address", crewMemberAddress },
+                                    { "@formateur", crewMemberFormateur },
+                                    { "@date", crewMemberUnixDate }
+                                };
 
                                 bool dataInserted = training.AuthorizeTraining(parameters);
                                 if (dataInserted) Methodes.PrintConsole(Config.sourceApplicationController, $"Votre demande a été enregistré avec success.");
@@ -1001,12 +1025,12 @@ namespace Gestionnaire
                                 }
 
                                 var parameters = new Dictionary<string, object>
-                            {
-                                { "@contractorId", contract.ContractorId },
-                                { "@startDate", paidLeaveUnixStartDate },
-                                { "@endDate", paidLeaveUnixEndDate },
-                                { "@reason", paidLeaveReason }
-                            };
+                                {
+                                    { "@contractorId", contract.ContractorId },
+                                    { "@startDate", paidLeaveUnixStartDate },
+                                    { "@endDate", paidLeaveUnixEndDate },
+                                    { "@reason", paidLeaveReason }
+                                };
 
                                 bool dataInserted = paidLeave.AuthorizePaidLeave(parameters);
                                 if (dataInserted) Methodes.PrintConsole(Config.sourceApplicationController, $"Votre demande a été enregistré avec success.");
@@ -1052,13 +1076,13 @@ namespace Gestionnaire
                                 }
 
                                 var parameters = new Dictionary<string, object>
-                            {
-                                { "@contractorId", contract.ContractorId },
-                                { "@startDate", workTravelUnixStartDate },
-                                { "@endDate", workTravelUnixEndDate },
-                                { "@address", WorkTravelAddr },
-                                { "@description", WorkTravelDescription }
-                            };
+                                {
+                                    { "@contractorId", contract.ContractorId },
+                                    { "@startDate", workTravelUnixStartDate },
+                                    { "@endDate", workTravelUnixEndDate },
+                                    { "@address", WorkTravelAddr },
+                                    { "@description", WorkTravelDescription }
+                                };
 
                                 WorkTravel worktravel = new(contract.ContractorId);
                                 bool dataInserted = worktravel.AuthorizeWorkTravel(parameters);
@@ -1129,15 +1153,16 @@ namespace Gestionnaire
                                 ShowContinuePrompt();
                                 goto retrySelectOption;
                             }
-                        break;
+                            break;
+                        }
                     }
-                }
             }
             return "";
         }
         private static void ShowContinuePrompt()
         {
-            Methodes.PrintConsole(Config.sourceApplicationController, "Appuyez sur n'importe quelle touche pour revenir au menu précédent...");
+            if (!Config.productionRun) return;
+            Methodes.PrintConsole(Config.sourceApplicationController, "Appuyez sur n'importe quelle touche pour revenir au menu précédent...\n");
             try
             {
                 _ = Console.ReadKey();
