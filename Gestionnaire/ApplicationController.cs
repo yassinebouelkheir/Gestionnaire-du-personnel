@@ -128,8 +128,8 @@ namespace Gestionnaire
                                     bool eparsedDate = long.TryParse(eformattedDate, out long eunixTimestamp);
                                     if (sparsedDate && eparsedDate)
                                     {
-                                        DateTime sdate = DateTimeOffset.FromUnixTimeSeconds(sunixTimestamp).DateTime.Date;
-                                        DateTime edate = DateTimeOffset.FromUnixTimeSeconds(eunixTimestamp).DateTime.Date;
+                                        DateTime sdate = DateTimeOffset.FromUnixTimeSeconds(sunixTimestamp).UtcDateTime.Date;
+                                        DateTime edate = DateTimeOffset.FromUnixTimeSeconds(eunixTimestamp).UtcDateTime.Date;
                                         sformattedDate = sdate.ToString("dd/MM/yyyy");
                                         eformattedDate = edate.ToString("dd/MM/yyyy");
                                     }
@@ -630,7 +630,7 @@ namespace Gestionnaire
 
                     retryCrewMemberGSM: string crewMemberGSM = Methodes.ReadUserInput( "Entrer le numéro GSM du nouveau membre: ") ?? string.Empty;
 
-                        if (string.IsNullOrWhiteSpace(crewMemberGSM) || crewMemberGSM.Length < 12 || !Methodes.IsNumeric(crewMemberGSM))
+                        if (string.IsNullOrWhiteSpace(crewMemberGSM) || crewMemberGSM.Length < 10 || !Methodes.IsNumeric(crewMemberGSM))
                         {
                             Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, Le numéro GSM doit être composée d'au moins 12 chiffres et ne doit pas être vide.");
                             goto retryCrewMemberGSM;
@@ -644,9 +644,9 @@ namespace Gestionnaire
                             goto retryCrewMemberEmail;
                         }
 
-                    retryCrewMemberAddress: string crewMemberAddress = Methodes.ReadUserInput("Entrer l'adresse mail du nouveau membre: ") ?? string.Empty;
+                    retryCrewMemberAddress: string crewMemberAddress = Methodes.ReadUserInput("Entrer l'adresse domicile du nouveau membre: ") ?? string.Empty;
 
-                        if (string.IsNullOrWhiteSpace(crewMemberAddress) || crewMemberAddress.Length < 15 || !Methodes.IsEmail(crewMemberAddress))
+                        if (string.IsNullOrWhiteSpace(crewMemberAddress) || crewMemberAddress.Length < 15)
                         {
                             Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, L'adresse doit être composée d'au moins 15 caractères et ne doit pas être vide.");
                             goto retryCrewMemberAddress;
@@ -659,7 +659,7 @@ namespace Gestionnaire
                             if (DateTime.TryParse(crewMemberEndDate, out var d)) crewMemberUnixEndDate = ((DateTimeOffset)d).ToUnixTimeSeconds();
                             else
                             {
-                                Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, La date doit être valide et ne doit pas être vide.");
+                                Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, La date doit être valide.");
                                 goto retryEndContractDate;
                             }
                         }
@@ -688,21 +688,22 @@ namespace Gestionnaire
 
                         Jobs job = new(crewMemberJob);
                         if (job.IsNull)
-                            if (string.IsNullOrWhiteSpace(crewMemberJob))
-                            {
-                                Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, Cette position n'existe pas dans le système.");
-                                goto retryCrewMemberJob;
-                            }
+                        {
+                            Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, Cette position n'existe pas dans le système.");
+                            goto retryCrewMemberJob;
+                        }
 
-                        var parameters = new Dictionary<string, object> { };
-                        parameters["@fullName"] = MyRegex().Replace(crewMemberName.Trim(), " ");
-                        parameters["@gsm"] = crewMemberGSM;
-                        parameters["@email"] = crewMemberEmail;
-                        parameters["@address"] = crewMemberAddress;
-                        parameters["@endDate"] = crewMemberUnixEndDate;
-                        parameters["@hours"] = crewMemberHours;
-                        parameters["@salary"] = crewMemberSalary;
-                        parameters["@job"] = job.Name;
+                        var parameters = new Dictionary<string, object>
+                        {
+                            ["@fullName"] = MyRegex().Replace(crewMemberName.Trim(), " "),
+                            ["@gsm"] = crewMemberGSM,
+                            ["@email"] = crewMemberEmail,
+                            ["@address"] = crewMemberAddress,
+                            ["@endDate"] = crewMemberUnixEndDate,
+                            ["@hours"] = crewMemberHours,
+                            ["@salary"] = crewMemberSalary,
+                            ["@job"] = job.JobId
+                        };
 
                         bool dataInserted = contract.InsertContract(parameters);
                         if (dataInserted) Methodes.PrintConsole(Config.sourceApplicationController, $"Votre demande a été enregistré avec success.");
@@ -805,7 +806,7 @@ namespace Gestionnaire
                                     if (DateTime.TryParse(crewMemberAbsenceDate, out DateTime dateTime))
                                     {
                                         DateTimeOffset dto = new(dateTime.ToUniversalTime());
-                                        crewMemberUnixDate = dto.AddDays(1).ToUnixTimeSeconds();
+                                        crewMemberUnixDate = dto.ToUnixTimeSeconds();
                                         if (dateTime > DateTime.Now)
                                         {
                                             Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, la date ne doit pas être dans le futur.");
@@ -817,37 +818,37 @@ namespace Gestionnaire
                                         Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, La date doit être valide et ne doit pas être vide.");
                                         goto retryAbsenceDate;
                                     }
-                                }
 
-                                Absence absent = new(contract.ContractorId, crewMemberUnixDate);
-                                if (!absent.IsNull)
-                                {
-                                    Methodes.PrintConsole(Config.sourceApplicationController, "Faites glisser et déposez un fichier PDF dans cette fenêtre et appuyez sur Entrée: ");
-                                    string inputPath = Console.ReadLine()?.Trim('\'', '"') ?? "";
-                                    if (string.IsNullOrWhiteSpace(inputPath) || !File.Exists(inputPath) || !inputPath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                                    Absence absent = new(contract.ContractorId, crewMemberUnixDate);
+                                    if (!absent.IsNull)
                                     {
-                                        Methodes.PrintConsole(Config.sourceApplicationController, $"Un erreur s'est produite, Veuillez réessayer s'il vous plaît...");
-                                        ShowContinuePrompt();
-                                        RunAdminService(2);
-                                        break;
+                                        Methodes.PrintConsole(Config.sourceApplicationController, "Faites glisser et déposez un fichier PDF dans cette fenêtre et appuyez sur Entrée: ");
+                                        string inputPath = Console.ReadLine()?.Trim('\'', '"') ?? "";
+                                        if (string.IsNullOrWhiteSpace(inputPath) || !File.Exists(inputPath) || !inputPath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            Methodes.PrintConsole(Config.sourceApplicationController, $"Un erreur s'est produite, Veuillez réessayer s'il vous plaît...");
+                                            ShowContinuePrompt();
+                                            RunAdminService(2);
+                                            break;
+                                        }
+                                        string fileName = $"justificative_absence_" + contract.ContractorId + "_" + absent.DateOfAbsence + ".pdf";
+                                        byte[] fileData = File.ReadAllBytes(inputPath);
+                                        string base64String = Convert.ToBase64String(fileData);
+                                        try
+                                        {
+                                            Methodes.UploadJustificative(fileName, base64String);
+                                            absent.DeclareJustificative(contract.ContractorId, fileName);
+                                            Methodes.PrintConsole(Config.sourceApplicationController, "Le justificative a été bien téléchargé et encodé dans le système.");
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            Methodes.PrintConsole(Config.sourceApplicationController, ex.ToString(), true);
+                                        }
                                     }
-                                    string fileName = $"justificative_absence_" + contract.ContractorId + "_" + absent.DateOfAbsence + ".pdf";
-                                    byte[] fileData = File.ReadAllBytes(inputPath);
-                                    string base64String = Convert.ToBase64String(fileData);
-                                    try
+                                    else
                                     {
-                                        Methodes.UploadJustificative(fileName, base64String);
-                                        absent.DeclareJustificative(contract.ContractorId, fileName);
-                                        Methodes.PrintConsole(Config.sourceApplicationController, "Le justificative a été bien téléchargé et encodé dans le système.");
+                                        Methodes.PrintConsole(Config.sourceApplicationController, "Il ne existe aucun absence enregistrée pour le date que vous avez fournis.");
                                     }
-                                    catch (Exception ex)
-                                    {
-                                        Methodes.PrintConsole(Config.sourceApplicationController, ex.ToString(), true);
-                                    }
-                                }
-                                else
-                                {
-                                    Methodes.PrintConsole(Config.sourceApplicationController, "Il ne existe aucun absence enregistrée pour le date que vous avez fournis.");
                                 }
                                 ShowContinuePrompt();
                                 RunAdminService(2);
@@ -901,9 +902,9 @@ namespace Gestionnaire
 
                             retryCrewMemberFormateur: string crewMemberFormateur = Methodes.ReadUserInput("Entrer le nom de l'entreprise/formateur: ") ?? string.Empty;
 
-                                if (string.IsNullOrWhiteSpace(crewMemberFormateur) || crewMemberFormateur.Length < 6)
+                                if (string.IsNullOrWhiteSpace(crewMemberFormateur) || crewMemberFormateur.Length < 3)
                                 {
-                                    Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, L'adresse doit être composée d'au moins 6 caractères et ne doit pas être vide.");
+                                    Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, Le nom de l'entreprise/formateur doit être composée d'au moins 3 caractères et ne doit pas être vide.");
                                     goto retryCrewMemberFormateur;
                                 }
 
@@ -1003,8 +1004,8 @@ namespace Gestionnaire
                                         Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, la date du début et du fin doit être dans le futur.");
                                         goto retryPaidLeave;
                                     }
-                                    paidLeaveUnixStartDate = ((DateTimeOffset)sd.AddDays(1)).ToUnixTimeSeconds();
-                                    paidLeaveUnixEndDate = ((DateTimeOffset)ed.AddDays(1)).ToUnixTimeSeconds();
+                                    paidLeaveUnixStartDate = ((DateTimeOffset)sd).ToUnixTimeSeconds();
+                                    paidLeaveUnixEndDate = ((DateTimeOffset)ed).ToUnixTimeSeconds();
 
                                     TimeSpan difference = ed - sd;
                                     int paidLeaveDaysLeft = 20 + totalbonus - count;

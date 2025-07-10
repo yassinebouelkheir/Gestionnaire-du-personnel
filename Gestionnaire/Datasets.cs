@@ -213,7 +213,8 @@ namespace Gestionnaire
                 { "@contractorId", contractorId },
                 { "@date", date }
             };
-            query = "INSERT IGNORE INTO Absences (contractorId, date) VALUES (@contractorId, @date)";
+            if (Config.productionRun) query = "INSERT IGNORE INTO Absences (contractorId, date) VALUES (@contractorId, @date)";
+            else query = "INSERT IGNORE INTO Absences (contractorId, date, justificativeDocument) VALUES (@contractorId, @date, 'justificative_absence_Test.pdf')";
             return InsertData(query, parameters);
         }
         public bool DeclareJustificative(int contractorId, string justificative)
@@ -264,7 +265,7 @@ namespace Gestionnaire
             if (date > 0)
             {
                 var dateTime = DateTimeOffset.FromUnixTimeSeconds(date).UtcDateTime.Date;
-                var startOfDay = new DateTimeOffset(dateTime).ToUnixTimeSeconds();
+                var startOfDay = new DateTimeOffset(dateTime, TimeSpan.Zero).ToUnixTimeSeconds();
 
                 query += " AND endDate >= @startOfDay AND startDate <= @startOfDay";
                 parameters["@startOfDay"] = startOfDay;
@@ -276,12 +277,12 @@ namespace Gestionnaire
             {
                 IsInPaidLeave = true;
                 _ = long.TryParse(ListPaidLeave[0]["startDate"], out long Date);
-                DateTime datetime = DateTimeOffset.FromUnixTimeSeconds(Date).DateTime.Date;
-                StartDate = datetime.ToString("dd/MM/yyyy") ?? "";
+                DateTime datetime = DateTimeOffset.FromUnixTimeSeconds(Date).UtcDateTime.Date;
+                StartDate = datetime.ToString("dd/MM/yyyy") ?? "";  
                 UnixStartDate = Date;
 
                 _ = long.TryParse(ListPaidLeave[0]["endDate"], out Date);
-                datetime = DateTimeOffset.FromUnixTimeSeconds(Date).DateTime.Date;
+                datetime = DateTimeOffset.FromUnixTimeSeconds(Date).UtcDateTime.Date;
                 EndDate = datetime.ToString("dd/MM/yyyy") ?? "";
                 UnixEndDate = Date;
 
@@ -554,8 +555,8 @@ namespace Gestionnaire
                 @return true if insertion is successful, false otherwise
             */
             string query = "";
-            query = "INSERT INTO Contracts (fullname, gsm, email, address, endDate, hours, salary, fonction) SELECT * FROM (SELECT @fullName AS fullname, @gsm AS gsm, @email AS email, @address AS address, @endDate AS endDate, @hours AS hours, @salary AS salary, @job AS fonction) AS tmp WHERE NOT EXISTS (SELECT 1 FROM contractor WHERE (gsm = @gsm AND (endDate = 0 OU endDate > UNIX_TIMESTAMP())));";
-            query += $"CREATE EVENT contract_{GSM.Replace(" ", "_")} ON SCHEDULE EVERY 1 MONTH DO UPDATE Contract SET salary = salary + (salary * 0.02), lastRaise = UNIX_TIMESTAMP() WHERE startDate <= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 2 YEAR)) AND (lastRaise = 0 OR lastRaise <= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 2 YEAR)));";
+            query = "INSERT INTO Contracts (fullname, gsm, email, address, endDate, hours, salary, fonction) SELECT * FROM (SELECT @fullName AS fullname, @gsm AS gsm, @email AS email, @address AS address, @endDate AS endDate, @hours AS hours, @salary AS salary, @job AS fonction) AS tmp WHERE NOT EXISTS (SELECT 1 FROM contracts WHERE (gsm = @gsm AND (endDate = 0 OR endDate > UNIX_TIMESTAMP())));";
+            //query += "CREATE EVENT contract_@email ON SCHEDULE EVERY 1 MONTH DO UPDATE Contract SET salary = salary + (salary * 0.02), lastRaise = UNIX_TIMESTAMP() WHERE startDate <= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 2 YEAR)) AND (lastRaise = 0 OR lastRaise <= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 2 YEAR)));";
             return InsertData(query, parameters);
         }
 

@@ -15,7 +15,7 @@ namespace Gestionnaire
 
             Methodes.PrintConsole(Config.sourceProgram, "Connexion à votre compte personnel..");
             Methodes.UserLogin();
-            if (!Config.productionRun) Methodes.PrintConsole(Config.sourceApplicationController, "⚠️  Mode test automatique actif, saisie utilisateur momentanément désactivée ⚠️\n");
+            if (!Config.productionRun) Methodes.PrintConsole(Config.sourceApplicationController, "⚠️  Mode test automatique actif, saisie utilisateur momentanément désactivée\n");
             ApplicationController Program = new();
         }
     }

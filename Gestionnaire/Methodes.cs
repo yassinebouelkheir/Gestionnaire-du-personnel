@@ -90,8 +90,8 @@ namespace Gestionnaire
             string timestamp = string.IsNullOrEmpty(PrintDateTime()) ? "" : PrintDateTime();
             if (Config.productionRun) Console.Write($"\n[Gestionnaire {timestamp}]: {text}");
             else Console.Write($"\n[Gestionnaire::Methodes {timestamp}]: {text}");
-
-            if (Config.productionRun || Program.TestProgression > 59)
+        
+            if (Config.productionRun || Program.TestProgression > 86)
             {
                 if (!ispassword) return Console.ReadLine() ?? "";
 
