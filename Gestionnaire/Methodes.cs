@@ -57,6 +57,9 @@ namespace Gestionnaire
             }
             else
             {
+                Console.BackgroundColor = ConsoleColor.Green;
+                Console.Write("  ");
+                Console.ResetColor();
                 string logMessage = $"[Gestionnaire::{source} {timestamp}]: {text}";
                 Console.WriteLine(logMessage);
             }
@@ -70,6 +73,9 @@ namespace Gestionnaire
                 }
                 catch (GestionnaireException ex)
                 {
+                    Console.BackgroundColor = ConsoleColor.Red;
+                    Console.Write("  ");
+                    Console.ResetColor();
                     Console.WriteLine($"[Gestionnaire::{source} {timestamp} Exception capturée]: " + ex.Message);
                 }
 
@@ -89,36 +95,43 @@ namespace Gestionnaire
             var input = "";
             string timestamp = string.IsNullOrEmpty(PrintDateTime()) ? "" : PrintDateTime();
             if (Config.productionRun) Console.Write($"\n[Gestionnaire {timestamp}]: {text}");
-            else Console.Write($"\n[Gestionnaire::Methodes {timestamp}]: {text}");
-        
-            if (Config.productionRun || Program.TestProgression > 86)
-            {
-                if (!ispassword) return Console.ReadLine() ?? "";
-
-                input = "";
-                ConsoleKeyInfo key;
-                while ((key = Console.ReadKey(true)).Key != ConsoleKey.Enter)
-                {
-                    if (key.Key == ConsoleKey.Backspace && input.Length > 0)
-                    {
-                        input = input[..^1];
-                        Console.Write("\b \b");
-                    }
-                    else if (!char.IsControl(key.KeyChar))
-                    {
-                        input += key.KeyChar;
-                        Console.Write("*");
-                    }
-                }
-                Console.WriteLine();
-            }
             else
             {
-                TestsAgent Agent = new();
-                input = Agent.RunTest(Program.TestProgression);
-                Program.TestProgression += 1;
-                Console.Write(input + "\n");
+                Console.Write("\n");
+                Console.BackgroundColor = ConsoleColor.Blue;
+                Console.Write("  ");
+                Console.ResetColor();
+                Console.Write($"[Gestionnaire::Methodes {timestamp}]: {text}");
             }
+        
+            if (Config.productionRun || Program.TestProgression > 134)
+                {
+                    if (!ispassword) return Console.ReadLine() ?? "";
+
+                    input = "";
+                    ConsoleKeyInfo key;
+                    while ((key = Console.ReadKey(true)).Key != ConsoleKey.Enter)
+                    {
+                        if (key.Key == ConsoleKey.Backspace && input.Length > 0)
+                        {
+                            input = input[..^1];
+                            Console.Write("\b \b");
+                        }
+                        else if (!char.IsControl(key.KeyChar))
+                        {
+                            input += key.KeyChar;
+                            Console.Write("*");
+                        }
+                    }
+                    Console.WriteLine();
+                }
+                else
+                {
+                    TestsAgent Agent = new();
+                    input = Agent.RunTest(Program.TestProgression);
+                    Program.TestProgression += 1;
+                    Console.Write(input + "\n");
+                }
             return input;
         }
         public static string PrintDateTime(int formatDateTime = -1)

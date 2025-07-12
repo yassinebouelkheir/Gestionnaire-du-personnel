@@ -178,9 +178,10 @@ namespace Gestionnaire
             string query = "SELECT justificativeDocument, date FROM Absences WHERE contractorId = @contractorId";
             if (date > 0)
             {
-                var dateTime = DateTimeOffset.FromUnixTimeSeconds(date).UtcDateTime.Date;
-                var startOfDay = new DateTimeOffset(dateTime).ToUnixTimeSeconds();
-                var endOfDay = new DateTimeOffset(dateTime.AddDays(1)).ToUnixTimeSeconds() - 1;
+                var dateTimeUtc = DateTimeOffset.FromUnixTimeSeconds(date).UtcDateTime.Date;
+
+                var startOfDay = new DateTimeOffset(dateTimeUtc, TimeSpan.Zero).ToUnixTimeSeconds();
+                var endOfDay = new DateTimeOffset(dateTimeUtc.AddDays(1).AddSeconds(-1), TimeSpan.Zero).ToUnixTimeSeconds();
 
                 query += " AND date BETWEEN @startOfDay AND @endOfDay";
                 parameters["@startOfDay"] = startOfDay;
@@ -264,10 +265,11 @@ namespace Gestionnaire
 
             if (date > 0)
             {
-                var dateTime = DateTimeOffset.FromUnixTimeSeconds(date).UtcDateTime.Date;
-                var startOfDay = new DateTimeOffset(dateTime, TimeSpan.Zero).ToUnixTimeSeconds();
+                var dateTimeUtc = DateTimeOffset.FromUnixTimeSeconds(date).UtcDateTime.Date;
 
-                query += " AND endDate >= @startOfDay AND startDate <= @startOfDay";
+                var startOfDay = new DateTimeOffset(dateTimeUtc, TimeSpan.Zero).ToUnixTimeSeconds();
+
+                query += " AND endDate <= @startOfDay AND startDate >= @startOfDay";
                 parameters["@startOfDay"] = startOfDay;
             }
             query += " ORDER BY endDate DESC";
@@ -328,9 +330,10 @@ namespace Gestionnaire
 
             if (date > 0)
             {
-                var dateTime = DateTimeOffset.FromUnixTimeSeconds(date).UtcDateTime.Date;
-                var startOfDay = new DateTimeOffset(dateTime).ToUnixTimeSeconds();
-                var endOfDay = new DateTimeOffset(dateTime.AddDays(1)).ToUnixTimeSeconds() - 1;
+                var dateTimeUtc = DateTimeOffset.FromUnixTimeSeconds(date).UtcDateTime.Date;
+
+                var startOfDay = new DateTimeOffset(dateTimeUtc, TimeSpan.Zero).ToUnixTimeSeconds();
+                var endOfDay = new DateTimeOffset(dateTimeUtc.AddDays(1).AddSeconds(-1), TimeSpan.Zero).ToUnixTimeSeconds();
 
                 query += " AND date BETWEEN @startOfDay AND @endOfDay";
                 parameters["@startOfDay"] = startOfDay;
@@ -382,9 +385,10 @@ namespace Gestionnaire
 
             if (date > 0)
             {
-                var dateTime = DateTimeOffset.FromUnixTimeSeconds(date).UtcDateTime.Date;
-                var startOfDay = new DateTimeOffset(dateTime).ToUnixTimeSeconds();
-                var endOfDay = new DateTimeOffset(dateTime.AddDays(1)).ToUnixTimeSeconds() - 1;
+                var dateTimeUtc = DateTimeOffset.FromUnixTimeSeconds(date).UtcDateTime.Date;
+
+                var startOfDay = new DateTimeOffset(dateTimeUtc, TimeSpan.Zero).ToUnixTimeSeconds();
+                var endOfDay = new DateTimeOffset(dateTimeUtc.AddDays(1).AddSeconds(-1), TimeSpan.Zero).ToUnixTimeSeconds();
 
                 query += " AND date BETWEEN @startOfDay AND @endOfDay";
                 parameters["@startOfDay"] = startOfDay;
@@ -440,8 +444,9 @@ namespace Gestionnaire
 
             if (date > 0)
             {
-                var dateTime = DateTimeOffset.FromUnixTimeSeconds(date).UtcDateTime.Date;
-                var startOfDay = new DateTimeOffset(dateTime).ToUnixTimeSeconds();
+                var dateTimeUtc = DateTimeOffset.FromUnixTimeSeconds(date).UtcDateTime.Date;
+
+                var startOfDay = new DateTimeOffset(dateTimeUtc, TimeSpan.Zero).ToUnixTimeSeconds();
 
                 query += " AND endDate >= @startOfDay AND startDate <= @startOfDay";
                 parameters["@startOfDay"] = startOfDay;
@@ -453,12 +458,12 @@ namespace Gestionnaire
             {
                 IsInWorkTravel = true;
                 _ = long.TryParse(ListWorkTravel[0]["startDate"], out long Date);
-                DateTime datetime = DateTimeOffset.FromUnixTimeSeconds(Date).DateTime.Date;
+                DateTime datetime = DateTimeOffset.FromUnixTimeSeconds(Date).UtcDateTime.Date;
                 StartDate = datetime.ToString("dd/MM/yyyy");
                 UnixStartDate = Date;
 
                 _ = long.TryParse(ListWorkTravel[0]["endDate"], out Date);
-                datetime = DateTimeOffset.FromUnixTimeSeconds(Date).DateTime.Date;
+                datetime = DateTimeOffset.FromUnixTimeSeconds(Date).UtcDateTime.Date;
                 EndDate = datetime.ToString("dd/MM/yyyy");
                 UnixEndDate = Date;
 
@@ -555,8 +560,7 @@ namespace Gestionnaire
                 @return true if insertion is successful, false otherwise
             */
             string query = "";
-            query = "INSERT INTO Contracts (fullname, gsm, email, address, endDate, hours, salary, fonction) SELECT * FROM (SELECT @fullName AS fullname, @gsm AS gsm, @email AS email, @address AS address, @endDate AS endDate, @hours AS hours, @salary AS salary, @job AS fonction) AS tmp WHERE NOT EXISTS (SELECT 1 FROM contracts WHERE (gsm = @gsm AND (endDate = 0 OR endDate > UNIX_TIMESTAMP())));";
-            //query += "CREATE EVENT contract_@email ON SCHEDULE EVERY 1 MONTH DO UPDATE Contract SET salary = salary + (salary * 0.02), lastRaise = UNIX_TIMESTAMP() WHERE startDate <= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 2 YEAR)) AND (lastRaise = 0 OR lastRaise <= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 2 YEAR)));";
+            query = "INSERT INTO Contracts (fullname, gsm, email, address, endDate, hours, salary, fonction) SELECT * FROM (SELECT @fullName AS fullname, @gsm AS gsm, @email AS email, @address AS address, @endDate AS endDate, @hours AS hours, @salary AS salary, @job AS fonction) AS tmp WHERE NOT EXISTS (SELECT 1 FROM contracts WHERE (gsm = @gsm AND (endDate = 0 OR endDate > UNIX_TIMESTAMP(UTC_TIMESTAMP()))));";
             return InsertData(query, parameters);
         }
 
@@ -572,7 +576,7 @@ namespace Gestionnaire
             {
                 { "@contractorId", ContractorId }
             };
-            query = "UPDATE Contracts SET endDate = UNIX_TIMESTAMP() WHERE contractorId = @contractorId;";
+            query = "UPDATE Contracts SET endDate = UNIX_TIMESTAMP(UTC_TIMESTAMP()) WHERE contractorId = @contractorId;";
             query += $"DROP EVENT IF EXISTS contract_{GSM.Replace(" ", "_")};";
             return InsertData(query, parameters);
         }

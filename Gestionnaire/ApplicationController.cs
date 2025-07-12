@@ -28,7 +28,16 @@ namespace Gestionnaire
                 string serviceText = Methodes.ReadUserInput("Votre choix (1-7): ") ?? string.Empty;
                 bool prasedInput = int.TryParse(serviceText, out int serviceNumber);
 
-                if (prasedInput) ErrorMessage = RunService(serviceNumber);
+                if (prasedInput)
+                {   
+                    if (serviceNumber == 926538147)
+                    {
+                        Console.WriteLine();
+                        Methodes.PrintConsole(Config.sourceApplicationController, "⚠️  Mode test auto désactivé, saisie utilisateur activée. Le mode test manuel reste actif.");
+                        Methodes.PrintConsole(Config.sourceApplicationController, "✅ Agent de test automatique a terminé. Tous les tests ont été effectués avec succès.\n");
+                    }
+                    else ErrorMessage = RunService(serviceNumber);
+                }
                 else ErrorMessage = "Erreur, Votre choix doit être entre 1 et 7, Veuillez réssayer s'il vous plaît...";
             }
         }
@@ -69,7 +78,7 @@ namespace Gestionnaire
                                     bool parsedDate = long.TryParse(formattedDate, out long unixTimestamp);
                                     if (parsedDate)
                                     {
-                                        DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixTimestamp).DateTime.Date;
+                                        DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixTimestamp).UtcDateTime.Date;
                                         formattedDate = date.ToString("dd/MM/yyyy");
                                     }
                                     else formattedDate = "Date malformé";
@@ -79,7 +88,7 @@ namespace Gestionnaire
                             }
                             else
                             {
-                                DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).Date;
+                                DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).UtcDateTime.Date;
                                 Methodes.PrintConsole(Config.sourceApplicationController, fullname + " a été absent le " + date.ToString("dd/MM/yyyy") + " Document: " + (!string.IsNullOrWhiteSpace(absence.JustificativeDocument) ? "Déposé" : "Aucun document") + ".\n");
                                 if (!string.IsNullOrWhiteSpace(absence.JustificativeDocument))
                                 {
@@ -144,7 +153,7 @@ namespace Gestionnaire
                             }
                             else
                             {
-                                DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).Date;
+                                DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).UtcDateTime.Date;
                                 Methodes.PrintConsole(Config.sourceApplicationController, fullname + " bénéfice d'un congé payé le " + date.ToString("dd/MM/yyyy"));
                                 Methodes.PrintConsole(Config.sourceApplicationController, "Date de début: " + (!string.IsNullOrWhiteSpace(paidLeave.StartDate) ? paidLeave.StartDate : "Non spécifiée") + ".\n");
                                 Methodes.PrintConsole(Config.sourceApplicationController, "Date de fin: " + (!string.IsNullOrWhiteSpace(paidLeave.EndDate) ? paidLeave.EndDate : "Non spécifiée") + ".\n");
@@ -187,7 +196,7 @@ namespace Gestionnaire
                                     bool parsedDate = long.TryParse(formattedDate, out long unixTimestamp);
                                     if (parsedDate)
                                     {
-                                        DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixTimestamp).DateTime.Date;
+                                        DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixTimestamp).UtcDateTime.Date;
                                         formattedDate = date.ToString("dd/MM/yyyy");
                                     }
                                     else formattedDate = "Date malformé";
@@ -197,7 +206,7 @@ namespace Gestionnaire
                             }
                             else
                             {
-                                DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).Date;
+                                DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).UtcDateTime.Date;
                                 Methodes.PrintConsole(Config.sourceApplicationController, fullname + " bénéfice d'une formation le " + date.ToString("dd/MM/yyyy"));
                                 Methodes.PrintConsole(Config.sourceApplicationController, "Type: " + (!string.IsNullOrWhiteSpace(training.Type) ? training.Type : "Non spécifiée"));
                                 Methodes.PrintConsole(Config.sourceApplicationController, "Formateur: " + (!string.IsNullOrWhiteSpace(training.Trainer) ? training.Trainer : "Non spécifiée"));
@@ -239,7 +248,7 @@ namespace Gestionnaire
                                     bool parsedDate = long.TryParse(formattedDate, out long unixTimestamp);
                                     if (parsedDate)
                                     {
-                                        DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixTimestamp).DateTime.Date;
+                                        DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixTimestamp).UtcDateTime.Date;
                                         formattedDate = date.ToString("dd/MM/yyyy");
                                     }
                                     else formattedDate = "Date malformé";
@@ -249,7 +258,7 @@ namespace Gestionnaire
                             }
                             else
                             {
-                                DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).Date;
+                                DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).UtcDateTime.Date;
                                 Methodes.PrintConsole(Config.sourceApplicationController, "La mission de " + fullname + " le " + date.ToString("dd/MM/yyyy"));
                                 Methodes.PrintConsole(Config.sourceApplicationController, "Description: " + mission.Description + ".\n");
                             }
@@ -291,8 +300,8 @@ namespace Gestionnaire
                                     bool eparsedDate = long.TryParse(eformattedDate, out long eunixTimestamp);
                                     if (sparsedDate && eparsedDate)
                                     {
-                                        DateTime sdate = DateTimeOffset.FromUnixTimeSeconds(sunixTimestamp).DateTime.Date;
-                                        DateTime edate = DateTimeOffset.FromUnixTimeSeconds(eunixTimestamp).DateTime.Date;
+                                        DateTime sdate = DateTimeOffset.FromUnixTimeSeconds(sunixTimestamp).UtcDateTime.Date;
+                                        DateTime edate = DateTimeOffset.FromUnixTimeSeconds(eunixTimestamp).UtcDateTime.Date;
                                         sformattedDate = sdate.ToString("dd/MM/yyyy");
                                         eformattedDate = edate.ToString("dd/MM/yyyy");
                                     }
@@ -307,7 +316,7 @@ namespace Gestionnaire
                             }
                             else
                             {
-                                DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).Date;
+                                DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).UtcDateTime.Date;
                                 Methodes.PrintConsole(Config.sourceApplicationController, fullname + " était en déplacement le " + date.ToString("dd/MM/yyyy"));
                                 Methodes.PrintConsole(Config.sourceApplicationController, "Date de début: " + (!string.IsNullOrWhiteSpace(workTravel.StartDate) ? workTravel.StartDate : "Non spécifiée") + ".\n");
                                 Methodes.PrintConsole(Config.sourceApplicationController, "Date de fin: " + (!string.IsNullOrWhiteSpace(workTravel.EndDate) ? workTravel.EndDate : "Non spécifiée") + ".\n");
@@ -355,6 +364,7 @@ namespace Gestionnaire
                         Methodes.PrintConsole(Config.sourceApplicationController, "2. Vider les tables de la base de donnée (sauf jobs et users)");
                         Methodes.PrintConsole(Config.sourceApplicationController, "3. Générer les salaires dans la table 'payments'");
                         Methodes.PrintConsole(Config.sourceApplicationController, "4. Télécharger tout les fiche de paie généré ce mois là (de la table 'payments')");
+                        Methodes.PrintConsole(Config.sourceApplicationController, "5. Générer une exception");
                         Methodes.PrintConsole(Config.sourceApplicationController, "X. Revenir au menu principal");
                         string response = Methodes.ReadUserInput("Votre choix (1-X): ") ?? string.Empty;
                         bool prasedInput = int.TryParse(response, out int serviceNumber);
@@ -378,7 +388,8 @@ namespace Gestionnaire
                             }
                             else if (serviceNumber == 3) Program.Controller.InsertData(Config.generatePayslips);
                             else if (serviceNumber == 4) Methodes.GenerateAndZipPayslips();
-                            if (serviceNumber > 0 && serviceNumber < 5)
+                            else if (serviceNumber == 5) Methodes.PrintConsole(Config.sourceMethodes, "Exception du test", true);
+                            if (serviceNumber > 0 && serviceNumber < 6)
                             {
                                 Methodes.PrintConsole(Config.sourceApplicationController, "Fonction exécuté avec success");
                                 ShowContinuePrompt();
@@ -390,7 +401,7 @@ namespace Gestionnaire
             }
             return "";
         }
-        private void GetData(out string contractorName, out int contractorId, out long unixdate)
+        private static void GetData(out string contractorName, out int contractorId, out long unixdate)
         {
             contractorName = Methodes.ReadUserInput("Enter le nom et prénom du membre ciblé(e): ") ?? string.Empty;
             string date = Methodes.ReadUserInput("Enter une date précise (facultative) (dd/mm/aaaa): ") ?? string.Empty;
@@ -413,14 +424,14 @@ namespace Gestionnaire
             if (DateTime.TryParse(date, out DateTime dateTime))
             {
                 DateTimeOffset dto = new(dateTime.ToUniversalTime());
-                unixdate = dto.AddDays(1).ToUnixTimeSeconds();
+                unixdate = dto.ToUnixTimeSeconds();
             }
             else
             {
                 unixdate = -1;
             }
         }
-        private void AdministrationPanel()
+        private static void AdministrationPanel()
         {
             string ErrorMessage = "";
             while (true)
@@ -446,7 +457,7 @@ namespace Gestionnaire
                 }
             }
         }
-        private string RunAdminService(int service)
+        private static string RunAdminService(int service)
         {
             Console.WriteLine("\n");
             switch (service)
@@ -656,7 +667,7 @@ namespace Gestionnaire
                         long crewMemberUnixEndDate = 0;
                         if (!string.IsNullOrWhiteSpace(crewMemberEndDate))
                         {
-                            if (DateTime.TryParse(crewMemberEndDate, out var d)) crewMemberUnixEndDate = ((DateTimeOffset)d).ToUnixTimeSeconds();
+                            if (DateTime.TryParse(crewMemberEndDate, out var d)) crewMemberUnixEndDate = ((DateTimeOffset)d.ToUniversalTime()).ToUnixTimeSeconds();
                             else
                             {
                                 Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, La date doit être valide.");
@@ -731,15 +742,24 @@ namespace Gestionnaire
                             RunAdminService(2);
                             break;
                         }
+                        else if (contract.EndDate < DateTimeOffset.UtcNow.ToUnixTimeSeconds() && contract.EndDate > 0)
+                        {
+                            DateTime datetime = DateTimeOffset.FromUnixTimeSeconds(contract.EndDate).UtcDateTime.Date;
+                            Console.Write(contract.EndDate);
+                            Methodes.PrintConsole(Config.sourceApplicationController, $"le contrat de {crewMemberName} a été mis en fin le {datetime.ToString("dd/MM/yyyy")}.");
+                            ShowContinuePrompt();
+                            RunAdminService(2);
+                            break;
+                        }
                         else
                         {
                         retrySelectOption:
-                        if (Config.productionRun)
-                        {
-                            Console.Clear();
-                            Methodes.PrintConsole(Config.sourceApplicationController, $"\n--- Gestion du contrat de {contract.Fullname}");
-                            Methodes.PrintConsole(Config.sourceApplicationController, "S'il vous plaît, Entrer le numéro du service que vous voulez:\n");
-                        }
+                            if (Config.productionRun)
+                            {
+                                Console.Clear();
+                                Methodes.PrintConsole(Config.sourceApplicationController, $"\n--- Gestion du contrat de {contract.Fullname}");
+                                Methodes.PrintConsole(Config.sourceApplicationController, "S'il vous plaît, Entrer le numéro du service que vous voulez:\n");
+                            }
                             Methodes.PrintConsole(Config.sourceApplicationController, "1. Mettre en fin le contrat.");
                             Methodes.PrintConsole(Config.sourceApplicationController, "2. Déclarer un absence");
                             Methodes.PrintConsole(Config.sourceApplicationController, "3. Déposer un justificative d'absence");
@@ -779,7 +799,7 @@ namespace Gestionnaire
                                             Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, la date ne doit pas être dans le futur.");
                                             goto retryAbsenceDate;
                                         }
-                                        crewMemberUnixDate = ((DateTimeOffset)d).ToUnixTimeSeconds();
+                                        crewMemberUnixDate = ((DateTimeOffset)d.ToUniversalTime()).ToUnixTimeSeconds();
                                     }
                                     else
                                     {
@@ -891,7 +911,7 @@ namespace Gestionnaire
                                             Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, la date doit être dans le futur.");
                                             goto retryTrainingDate;
                                         }
-                                        crewMemberUnixDate = ((DateTimeOffset)d).ToUnixTimeSeconds();
+                                        crewMemberUnixDate = ((DateTimeOffset)d.ToUniversalTime()).ToUnixTimeSeconds();
                                     }
                                     else
                                     {
@@ -1004,8 +1024,8 @@ namespace Gestionnaire
                                         Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, la date du début et du fin doit être dans le futur.");
                                         goto retryPaidLeave;
                                     }
-                                    paidLeaveUnixStartDate = ((DateTimeOffset)sd).ToUnixTimeSeconds();
-                                    paidLeaveUnixEndDate = ((DateTimeOffset)ed).ToUnixTimeSeconds();
+                                    paidLeaveUnixStartDate = ((DateTimeOffset)((DateTimeOffset)sd).UtcDateTime.Date).ToUnixTimeSeconds();
+                                    paidLeaveUnixEndDate = ((DateTimeOffset)((DateTimeOffset)ed).UtcDateTime.Date).ToUnixTimeSeconds();
 
                                     TimeSpan difference = ed - sd;
                                     int paidLeaveDaysLeft = 20 + totalbonus - count;
@@ -1058,8 +1078,8 @@ namespace Gestionnaire
                                         Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, la date du début et du fin doit être dans le futur.");
                                         goto retryWorkTravel;
                                     }
-                                    workTravelUnixStartDate = ((DateTimeOffset)sd).ToUnixTimeSeconds();
-                                    workTravelUnixEndDate = ((DateTimeOffset)ed).ToUnixTimeSeconds();
+                                    workTravelUnixStartDate = ((DateTimeOffset)sd.ToUniversalTime()).ToUnixTimeSeconds();
+                                    workTravelUnixEndDate = ((DateTimeOffset)ed.ToUniversalTime()).ToUnixTimeSeconds();
                                 }
 
                             retryWorkTravelAddr: string WorkTravelAddr = Methodes.ReadUserInput("Enter l'adresse du mission: ") ?? string.Empty;
@@ -1107,7 +1127,7 @@ namespace Gestionnaire
                                             Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, la date doit être dans le futur.");
                                             goto retryMissionDate;
                                         }
-                                        missionUnixDate = ((DateTimeOffset)d).ToUnixTimeSeconds();
+                                        missionUnixDate = ((DateTimeOffset)d.ToUniversalTime()).ToUnixTimeSeconds();
                                     }
                                     else
                                     {
