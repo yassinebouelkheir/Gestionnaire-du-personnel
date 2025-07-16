@@ -27,15 +27,15 @@ namespace Gestionnaire
             }
         }
 
+        /// <summary>
+        /// Écrit un message formaté dans la console.
+        /// En mode production, affiche un message d'erreur générique et quitte si demandé.
+        /// </summary>
+        /// <param name="source">Fichier d'origine du message</param>
+        /// <param name="text">Contenu du message</param>
+        /// <param name="exitMessage">Si true, affiche le message puis termine le programme</param>
         public static void PrintConsole(string source, string text, bool exitMessage = false)
         {
-            /*
-                Writes a formatted message to the console.
-                In production mode, shows a generic error and exits.
-                @param source - origin file of the message
-                @param text - message content
-                @param exitMessage - if true, logs and terminates the program
-            */
             string timestamp = string.IsNullOrEmpty(PrintDateTime()) ? "" : PrintDateTime();
             if (Config.productionRun)
             {
@@ -83,15 +83,14 @@ namespace Gestionnaire
                 Log(logMessage);
             }
         }
+        
+        /// Affiche une invite à l'utilisateur et retourne la saisie.
+        /// Masque les caractères avec * si ispassword est vrai.
+        /// @param text - invite affichée à l'utilisateur
+        /// @param ispassword - vrai pour cacher la saisie
+        /// @return chaîne saisie par l'utilisateur
         public static string ReadUserInput(string text, bool ispassword = false)
         {
-            /*
-                Prompts the user and returns the entered text.
-                Masks characters with * if ispassword is true.
-                @param text - prompt shown to the user
-                @param ispassword - true to hide input while typing
-                @return the user-entered string
-            */
             var input = "";
             string timestamp = string.IsNullOrEmpty(PrintDateTime()) ? "" : PrintDateTime();
             if (Config.productionRun) Console.Write($"\n[Gestionnaire {timestamp}]: {text}");
@@ -103,43 +102,42 @@ namespace Gestionnaire
                 Console.ResetColor();
                 Console.Write($"[Gestionnaire::Methodes {timestamp}]: {text}");
             }
-        
-            if (Config.productionRun || Program.TestProgression > 134)
-                {
-                    if (!ispassword) return Console.ReadLine() ?? "";
 
-                    input = "";
-                    ConsoleKeyInfo key;
-                    while ((key = Console.ReadKey(true)).Key != ConsoleKey.Enter)
-                    {
-                        if (key.Key == ConsoleKey.Backspace && input.Length > 0)
-                        {
-                            input = input[..^1];
-                            Console.Write("\b \b");
-                        }
-                        else if (!char.IsControl(key.KeyChar))
-                        {
-                            input += key.KeyChar;
-                            Console.Write("*");
-                        }
-                    }
-                    Console.WriteLine();
-                }
-                else
+            if (Config.productionRun || Program.TestProgression > 133)
+            {
+                if (!ispassword) return Console.ReadLine() ?? "";
+
+                input = "";
+                ConsoleKeyInfo key;
+                while ((key = Console.ReadKey(true)).Key != ConsoleKey.Enter)
                 {
-                    TestsAgent Agent = new();
-                    input = Agent.RunTest(Program.TestProgression);
-                    Program.TestProgression += 1;
-                    Console.Write(input + "\n");
+                    if (key.Key == ConsoleKey.Backspace && input.Length > 0)
+                    {
+                        input = input[..^1];
+                        Console.Write("\b \b");
+                    }
+                    else if (!char.IsControl(key.KeyChar))
+                    {
+                        input += key.KeyChar;
+                        Console.Write("*");
+                    }
                 }
+                Console.WriteLine();
+            }
+            else
+            {
+                TestsAgent Agent = new();
+                input = Agent.RunTest(Program.TestProgression);
+                Program.TestProgression += 1;
+                Console.Write(input + "\n");
+            }
             return input;
         }
+
+        /// Formate la date/heure courante selon Config.consoleDateTime.
+        /// @return chaîne formatée ou vide si désactivé
         public static string PrintDateTime(int formatDateTime = -1)
         {
-            /*
-                Formats the current date/time based on Config.consoleDateTime.
-                @return formatted date/time string or empty if disabled
-            */
             string outputString = "";
             int optionValue = ((formatDateTime == -1) ? Config.consoleDateTime : formatDateTime);
             outputString = optionValue switch
@@ -151,12 +149,11 @@ namespace Gestionnaire
             };
             return outputString;
         }
+
+        /// Gère la connexion utilisateur avec nombre limité de tentatives.
+        /// Affiche les messages d'état et attend brièvement en cas de succès.
         public static void UserLogin()
         {
-            /*
-                Handles user login with limited retry attempts.
-                Prints status messages and pauses briefly on success.
-            */
             bool isCredentialsValid = false;
             int attemptCount = 0;
 
@@ -179,22 +176,20 @@ namespace Gestionnaire
             PrintConsole(Config.sourceProgram, "Connexion réussie, Veuillez Patientez...\n");
             PrintConsole(Config.sourceApplicationController, "Bienvenue au Gestionnaire du personnel v1.0");
         }
+
+        /// Valide qu'une chaîne représente un entier positif.
+        /// @param value - chaîne à tester
+        /// @return vrai si numérique et > 0, sinon faux
         public static bool IsNumeric(string value)
         {
-            /*
-                Validates that the supplied string is a positive integer.
-                @param value - string to test
-                @return true if numeric and > 0, otherwise false
-            */
             return int.TryParse(value, out int result) && result > 0;
         }
+
+        /// Vérifie si une chaîne est une adresse email valide.
+        /// @param email - chaîne email à valider
+        /// @return vrai si valide, sinon faux
         public static bool IsEmail(string email)
         {
-            /*
-                Checks whether a string is a well-formed email address.
-                @param email - email string to validate
-                @return true if valid, otherwise false
-            */
             try
             {
                 var addr = new System.Net.Mail.MailAddress(email);
@@ -205,6 +200,10 @@ namespace Gestionnaire
                 return false;
             }
         }
+
+        /// Stocke un PDF justificatif dans la base de données.
+        /// @param fileName - nom logique du fichier
+        /// @param fileData - données PDF en base64
         public static void UploadJustificative(string fileName, string fileData)
         {
             /*
@@ -220,6 +219,9 @@ namespace Gestionnaire
             };
             Program.Controller.InsertData(query, parameters);
         }
+
+        /// Récupère un PDF justificatif depuis la base et ouvre le dossier.
+        /// @param fileName - nom du PDF à télécharger
         public static void DownloadJustificative(string fileName)
         {
             /*
@@ -251,6 +253,9 @@ namespace Gestionnaire
             System.Diagnostics.Process.Start(psi);
         }
 
+        /// Génère les fiches de paie mensuelles au format PDF (optionnellement pour un contractant),
+        /// les compresse en ZIP, sauvegarde l'archive sur le bureau, et ouvre le dossier.
+        /// @param contractorId - ID du contractant spécifique ou -1 pour tous
         public static void GenerateAndZipPayslips(int contractorId = -1)
         {
             /*
@@ -289,6 +294,11 @@ namespace Gestionnaire
                 PrintConsole(Config.sourceMethodes, ex.ToString(), true);
             }
         }
+
+        /// <summary>
+        /// Vérifie la validité des identifiants saisis par l'utilisateur.
+        /// </summary>
+        /// <returns>True si les identifiants sont corrects, sinon false</returns>
         private static bool CheckCredential()
         {
             Methodes UserConsole = new();
@@ -358,6 +368,14 @@ namespace Gestionnaire
                 return false;
             }
         }
+
+        /// <summary>
+        /// Vérifie un mot de passe en le comparant au hash stocké.
+        /// </summary>
+        /// <param name="password">Le mot de passe en texte clair à vérifier.</param>
+        /// <param name="storedHash">Le hash stocké du mot de passe.</param>
+        /// <param name="storedSalt">Le sel utilisé pour le hashage, encodé en base64.</param>
+        /// <returns>True si le mot de passe correspond, sinon false.</returns>
         private static bool VerifyPassword(string password, string storedHash, string storedSalt)
         {
             try
@@ -379,6 +397,12 @@ namespace Gestionnaire
                 return false;
             }
         }
+
+        /// <summary>
+        /// Récupère les paiements du mois courant, optionnellement pour un contractant.
+        /// </summary>
+        /// <param name="contractorId">ID du contractant (optionnel, -1 pour tous).</param>
+        /// <returns>Liste des paiements correspondant aux critères.</returns>
         private static List<QueryResultRow> GetPaymentsForCurrentMonth(int contractorId = -1)
         {
             string query = @"
@@ -402,6 +426,12 @@ namespace Gestionnaire
             var payments = Program.Controller.ReadData(query, parameters);
             return payments;
         }
+
+        /// <summary>
+        /// Génère un fichier PDF pour une fiche de paie donnée.
+        /// </summary>
+        /// <param name="payment">Les données de paiement sous forme de QueryResultRow.</param>
+        /// <param name="folderPath">Le dossier de destination pour le fichier PDF.</param>
         private static void GeneratePdfForPayment(QueryResultRow payment, string folderPath)
         {
             using var document = new PdfDocument();
@@ -452,12 +482,23 @@ namespace Gestionnaire
 
             document.Save(fullPath);
         }
+
+        /// <summary>
+        /// Rend un nom de fichier valide en remplaçant les caractères interdits.
+        /// </summary>
+        /// <param name="name">Nom de fichier potentiellement invalide.</param>
+        /// <returns>Nom de fichier sécurisé.</returns>
         private static string SafeFileName(string name)
         {
             foreach (char c in Path.GetInvalidFileNameChars())
                 name = name.Replace(c, '_');
             return name;
         }
+
+        /// <summary>
+        /// Ouvre le dossier contenant un fichier et le sélectionne dans l'explorateur de fichiers.
+        /// </summary>
+        /// <param name="filePath">Chemin du fichier à sélectionner.</param>
         private static void OpenFolderAndSelectFile(string filePath)
         {
             string folderPath = Path.GetDirectoryName(filePath) ?? "";
@@ -471,6 +512,11 @@ namespace Gestionnaire
             else
                 PrintConsole(Config.sourceMethodes, "Erreur, Système d'explotation incompatible.", true);
         }
+
+        /// <summary>
+        /// Enregistre un message d’erreur dans un fichier log, et affiche dans la console si en mode développement.
+        /// </summary>
+        /// <param name="logMessage">Le message à enregistrer.</param>
         private static void Log(string logMessage)
         {
             string logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "error_log.txt");
@@ -484,10 +530,16 @@ namespace Gestionnaire
             }
         }
     }
+    /// <summary>
+    /// Fournisseur de police personnalisé pour PdfSharp.
+    /// </summary>
     class MinimalFontResolver : IFontResolver
     {
         private readonly byte[] fontData;
 
+        /// <summary>
+        /// Charge les données de police intégrées depuis les ressources.
+        /// </summary>
         public MinimalFontResolver()
         {
             var assembly = Assembly.GetExecutingAssembly();
@@ -499,9 +551,20 @@ namespace Gestionnaire
             fontStream?.CopyTo(ms);
             fontData = ms.ToArray();
         }
-
+        /// <summary>
+        /// Récupère les données binaires de la police.
+        /// </summary>
+        /// <param name="faceName">Nom de la police.</param>
+        /// <returns>Données binaires de la police.</returns>
         public byte[] GetFont(string faceName) => fontData;
-
+        
+        /// <summary>
+        /// Résout le type de police à utiliser pour un style donné.
+        /// </summary>
+        /// <param name="familyName">Nom de la famille de police.</param>
+        /// <param name="isBold">Indique si la police est en gras.</param>
+        /// <param name="isItalic">Indique si la police est en italique.</param>
+        /// <returns>Informations sur la police résolue.</returns>
         public FontResolverInfo ResolveTypeface(string familyName, bool isBold, bool isItalic)
             => new("LiberationSans");
     }

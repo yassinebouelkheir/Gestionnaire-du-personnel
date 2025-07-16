@@ -6,17 +6,21 @@ namespace Gestionnaire
     {
         private readonly string connectionString =
             $"Server={Config.mysqlServer};Database={Config.mysqlDatabase};Uid={Config.mysqlUsername};Pwd={Config.mysqlPassword};Port={Config.mysqlPort};";
-
+        
+        /// <summary>
+        /// Constructeur de MySQLController.
+        /// Initialise la connexion à la base de données et charge les paramètres initiaux.
+        /// </summary>
         public MySQLController()
         {
-            /*
-                Constructor for MySQLController.
-                Initializes database connection and loads initial parameters.
-            */
             Initialization();
             InsertSelekton();
         }
 
+        /// <summary>
+        /// Établit une connexion à la base de données pour vérifier la disponibilité.
+        /// Affiche les messages d'état et termine le programme en cas d'erreur.
+        /// </summary>
         private void Initialization()
         {
             try
@@ -35,6 +39,10 @@ namespace Gestionnaire
             }
         }
 
+        /// <summary>
+        /// Exécute la requête de création ou insertion des paramètres initiaux (squelette).
+        /// Affiche un message en cas d'erreur fatale.
+        /// </summary>
         private void InsertSelekton()
         {
             try
@@ -53,14 +61,14 @@ namespace Gestionnaire
             }
         }
 
+        /// <summary>
+        /// Exécute une requête d'insertion ou de mise à jour avec des paramètres optionnels.
+        /// En mode développement, affiche le nombre de lignes affectées.
+        /// </summary>
+        /// <param name="query">Requête SQL d'insertion ou mise à jour</param>
+        /// <param name="parameters">Dictionnaire des paramètres SQL, peut être null</param>
         public void InsertData(string query, Dictionary<string, object>? parameters = null)
         {
-            /*
-                Executes an insert or update query with optional parameters.
-                Prints the number of affected rows in development mode.
-                @param query - SQL insert/update string
-                @param parameters - dictionary of query parameters (nullable)
-            */
             using var controller = new MySqlConnection(connectionString);
             controller.Open();
             var command = new MySqlCommand(query, controller);
@@ -79,10 +87,17 @@ namespace Gestionnaire
             if (!Config.productionRun)
             {
                 if (queryState == 1) Methodes.PrintConsole(Config.sourceMySQL, "La ligne a été insérée/modifié dans la base de données.");
-                else Methodes.PrintConsole(Config.sourceMySQL, $"Total de {queryState} ligne a été affectée.");   
+                else Methodes.PrintConsole(Config.sourceMySQL, $"Total de {queryState} ligne a été affectée.");
             }
         }
 
+        /// <summary>
+        /// Exécute une requête de sélection avec paramètres et retourne les résultats sous forme de liste de lignes.
+        /// Chaque ligne contient un dictionnaire colonne-valeur en string.
+        /// </summary>
+        /// <param name="query">Requête SQL de sélection</param>
+        /// <param name="parameters">Dictionnaire des paramètres SQL</param>
+        /// <returns>Liste des résultats sous forme de QueryResultRow</returns>
         public List<QueryResultRow> ReadData(string query, Dictionary<string, object> parameters)
         {
             /*

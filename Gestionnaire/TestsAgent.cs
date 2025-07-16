@@ -8,13 +8,18 @@ namespace Gestionnaire
 
     public class TestsAgent : ITestsAgent
     {
+        /// <summary>
+        /// Exécute un test prédéfini basé sur l'identifiant fourni.
+        /// </summary>
+        /// <param name="testid">L'identifiant du test à exécuter.</param>
+        /// <returns>Résultat du test sous forme de chaîne de caractères.</returns>
         public string RunTest(int testid)
         {
             string outputString = testid switch
             {
                 0 => "admin",
                 1 => "admin",
-                2 => "8", 
+                2 => "8",
                 3 => "2",
                 4 => "1",
                 5 => "X",
@@ -25,7 +30,7 @@ namespace Gestionnaire
                 10 => "Marie Dupont",
                 11 => " ",
                 12 => "30",
-                13 => "2", 
+                13 => "2",
                 14 => "Sophie Lambert",
                 15 => " ",
                 16 => "30",
@@ -39,7 +44,7 @@ namespace Gestionnaire
                 24 => "3",
                 25 => "Camille Gerard",
                 26 => "12/04/2025",
-                27 => "4", 
+                27 => "4",
                 28 => "Elodie Simon",
                 29 => " ",
                 30 => "30",
@@ -123,30 +128,29 @@ namespace Gestionnaire
                 108 => "4",
                 109 => "Yassine Bouelkheir",
                 110 => " ",
-                111 => "30",
-                112 => "5",
-                113 => "Yassine Bouelkheir",
-                114 => " ",
-                115 => "30",
-                116 => "8",
-                117 => "3",
-                118 => "4",
-                119 => "X",
-                120 => "6",
-                121 => "123456",
+                111 => "5",
+                112 => "Yassine Bouelkheir",
+                113 => " ",
+                114 => "30",
+                115 => "8",
+                116 => "3",
+                117 => "4",
+                118 => "X",
+                119 => "6",
+                120 => "123456",
+                121 => "2",
                 122 => "2",
-                123 => "2",
-                124 => "Yassine Bouelkheir",
-                125 => "1",
-                126 => "OUI",
-                127 => "2",
-                128 => "Yassine Bouelkheir",
+                123 => "Yassine Bouelkheir",
+                124 => "1",
+                125 => "OUI",
+                126 => "2",
+                127 => "Yassine Bouelkheir",
+                128 => "3",
                 129 => "3",
-                130 => "3",
-                131 => "8",
-                132 => "5",
-                133 => "X",
-                134 => "926538147",
+                130 => "8",
+                131 => "5",
+                132 => "X",
+                133 => "926538147",
                 _ => string.Empty,
             };
             return outputString;

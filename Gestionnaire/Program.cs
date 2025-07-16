@@ -7,6 +7,11 @@ namespace Gestionnaire
         public static MySQLController Controller { get; private set; } = null!;
         public static int TestProgression = 0;
 
+        /// <summary>
+        /// Point d'entrée principal de l'application.
+        /// Initialise les composants et gère la connexion utilisateur.
+        /// </summary>
+        /// <param name="args">Arguments de la ligne de commande.</param>
         static void Main(string[] args)
         {
             Methodes.PrintConsole(Config.sourceProgram, "Démarrage de l'application, veuillez patienter...");

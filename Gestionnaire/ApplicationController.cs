@@ -2,10 +2,18 @@ using System.Text.RegularExpressions;
 
 namespace Gestionnaire
 {
+    /// <summary>
+    /// Contrôleur principal de l'application de gestion du personnel.
+    /// Affiche le menu principal, lit les choix de l'utilisateur, et exécute les services correspondants.
+    /// </summary>
     partial class ApplicationController
     {
         private readonly string ErrorMessage = "";
-        private readonly Methodes UserConsole = new();
+
+        /// <summary>
+        /// Initialise une nouvelle instance de la classe <see cref="ApplicationController"/>.
+        /// Lance une boucle infinie pour gérer les interactions utilisateur via le menu principal.
+        /// </summary>
         public ApplicationController()
         {
             while (true)
@@ -29,7 +37,7 @@ namespace Gestionnaire
                 bool prasedInput = int.TryParse(serviceText, out int serviceNumber);
 
                 if (prasedInput)
-                {   
+                {
                     if (serviceNumber == 926538147)
                     {
                         Console.WriteLine();
@@ -41,7 +49,16 @@ namespace Gestionnaire
                 else ErrorMessage = "Erreur, Votre choix doit être entre 1 et 7, Veuillez réssayer s'il vous plaît...";
             }
         }
-        private string RunService(int service)
+
+        /// <summary>
+        /// Exécute le service correspondant au numéro saisi par l'utilisateur.
+        /// </summary>
+        /// <param name="service">Le numéro du service sélectionné par l'utilisateur.</param>
+        /// <returns>
+        /// Un message d'erreur si le service est invalide ou si une erreur s'est produite pendant l'exécution.
+        /// Retourne une chaîne vide si le service s'exécute sans erreur.
+        /// </returns>
+        private static string RunService(int service)
         {
             Console.WriteLine("\n");
             switch (service)
@@ -61,8 +78,8 @@ namespace Gestionnaire
                             if (unixdate < 0)
                             {
                                 goto printPrompt;
-                                retryprompt: Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, Votre choix doit être entre 1 et 30, Veuillez réssayer s'il vous plaît...");
-                                printPrompt: string response = Methodes.ReadUserInput("Enter le total des dernières absence que vous voulez voir (1-30): ") ?? string.Empty;
+                            retryprompt: Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, Votre choix doit être entre 1 et 30, Veuillez réssayer s'il vous plaît...");
+                            printPrompt: string response = Methodes.ReadUserInput("Enter le total des dernières absence que vous voulez voir (1-30): ") ?? string.Empty;
                                 bool prasedInput = int.TryParse(response, out int absenceCount);
                                 if (absenceCount > 30 || absenceCount < 1) goto retryprompt;
 
@@ -78,7 +95,7 @@ namespace Gestionnaire
                                     bool parsedDate = long.TryParse(formattedDate, out long unixTimestamp);
                                     if (parsedDate)
                                     {
-                                        DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixTimestamp).UtcDateTime.Date;
+                                        DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixTimestamp).Date;
                                         formattedDate = date.ToString("dd/MM/yyyy");
                                     }
                                     else formattedDate = "Date malformé";
@@ -88,7 +105,7 @@ namespace Gestionnaire
                             }
                             else
                             {
-                                DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).UtcDateTime.Date;
+                                DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).Date;
                                 Methodes.PrintConsole(Config.sourceApplicationController, fullname + " a été absent le " + date.ToString("dd/MM/yyyy") + " Document: " + (!string.IsNullOrWhiteSpace(absence.JustificativeDocument) ? "Déposé" : "Aucun document") + ".\n");
                                 if (!string.IsNullOrWhiteSpace(absence.JustificativeDocument))
                                 {
@@ -118,8 +135,8 @@ namespace Gestionnaire
                             if (unixdate < 0)
                             {
                                 goto printPrompt;
-                                retryprompt: Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, Votre choix doit être entre 1 et 30, Veuillez réssayer s'il vous plaît...");
-                                printPrompt: string response = Methodes.ReadUserInput("Entrer le total des congés payés que vous voulez voir (1-30): ") ?? string.Empty;
+                            retryprompt: Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, Votre choix doit être entre 1 et 30, Veuillez réssayer s'il vous plaît...");
+                            printPrompt: string response = Methodes.ReadUserInput("Entrer le total des congés payés que vous voulez voir (1-30): ") ?? string.Empty;
                                 bool prasedInput = int.TryParse(response, out int paidLeaveCount);
                                 if (paidLeaveCount > 30 || paidLeaveCount < 1) goto retryprompt;
 
@@ -137,8 +154,8 @@ namespace Gestionnaire
                                     bool eparsedDate = long.TryParse(eformattedDate, out long eunixTimestamp);
                                     if (sparsedDate && eparsedDate)
                                     {
-                                        DateTime sdate = DateTimeOffset.FromUnixTimeSeconds(sunixTimestamp).UtcDateTime.Date;
-                                        DateTime edate = DateTimeOffset.FromUnixTimeSeconds(eunixTimestamp).UtcDateTime.Date;
+                                        DateTime sdate = DateTimeOffset.FromUnixTimeSeconds(sunixTimestamp).Date;
+                                        DateTime edate = DateTimeOffset.FromUnixTimeSeconds(eunixTimestamp).Date;
                                         sformattedDate = sdate.ToString("dd/MM/yyyy");
                                         eformattedDate = edate.ToString("dd/MM/yyyy");
                                     }
@@ -153,7 +170,7 @@ namespace Gestionnaire
                             }
                             else
                             {
-                                DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).UtcDateTime.Date;
+                                DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).Date;
                                 Methodes.PrintConsole(Config.sourceApplicationController, fullname + " bénéfice d'un congé payé le " + date.ToString("dd/MM/yyyy"));
                                 Methodes.PrintConsole(Config.sourceApplicationController, "Date de début: " + (!string.IsNullOrWhiteSpace(paidLeave.StartDate) ? paidLeave.StartDate : "Non spécifiée") + ".\n");
                                 Methodes.PrintConsole(Config.sourceApplicationController, "Date de fin: " + (!string.IsNullOrWhiteSpace(paidLeave.EndDate) ? paidLeave.EndDate : "Non spécifiée") + ".\n");
@@ -178,8 +195,8 @@ namespace Gestionnaire
                             if (unixdate < 0)
                             {
                                 goto printPrompt;
-                                retryprompt: Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, Votre choix doit être entre 1 et 30, Veuillez réssayer s'il vous plaît...");
-                                printPrompt: string response = Methodes.ReadUserInput("Enter le total des dernières formations que vous voulez voir (1-30): ") ?? string.Empty;
+                            retryprompt: Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, Votre choix doit être entre 1 et 30, Veuillez réssayer s'il vous plaît...");
+                            printPrompt: string response = Methodes.ReadUserInput("Enter le total des dernières formations que vous voulez voir (1-30): ") ?? string.Empty;
                                 bool prasedInput = int.TryParse(response, out int trainingCount);
                                 if (trainingCount > 30 || trainingCount < 1) goto retryprompt;
 
@@ -196,7 +213,7 @@ namespace Gestionnaire
                                     bool parsedDate = long.TryParse(formattedDate, out long unixTimestamp);
                                     if (parsedDate)
                                     {
-                                        DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixTimestamp).UtcDateTime.Date;
+                                        DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixTimestamp).Date;
                                         formattedDate = date.ToString("dd/MM/yyyy");
                                     }
                                     else formattedDate = "Date malformé";
@@ -206,7 +223,7 @@ namespace Gestionnaire
                             }
                             else
                             {
-                                DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).UtcDateTime.Date;
+                                DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).Date;
                                 Methodes.PrintConsole(Config.sourceApplicationController, fullname + " bénéfice d'une formation le " + date.ToString("dd/MM/yyyy"));
                                 Methodes.PrintConsole(Config.sourceApplicationController, "Type: " + (!string.IsNullOrWhiteSpace(training.Type) ? training.Type : "Non spécifiée"));
                                 Methodes.PrintConsole(Config.sourceApplicationController, "Formateur: " + (!string.IsNullOrWhiteSpace(training.Trainer) ? training.Trainer : "Non spécifiée"));
@@ -231,8 +248,8 @@ namespace Gestionnaire
                             if (unixdate < 0)
                             {
                                 goto printPrompt;
-                                retryprompt: Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, Votre choix doit être entre 1 et 30, Veuillez réssayer s'il vous plaît...");
-                                printPrompt: string response = Methodes.ReadUserInput("Enter le total des dernières missions que vous voulez voir (1-30): ") ?? string.Empty;
+                            retryprompt: Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, Votre choix doit être entre 1 et 30, Veuillez réssayer s'il vous plaît...");
+                            printPrompt: string response = Methodes.ReadUserInput("Enter le total des dernières missions que vous voulez voir (1-30): ") ?? string.Empty;
                                 bool prasedInput = int.TryParse(response, out int missionCount);
                                 if (missionCount > 30 || missionCount < 1) goto retryprompt;
 
@@ -248,7 +265,7 @@ namespace Gestionnaire
                                     bool parsedDate = long.TryParse(formattedDate, out long unixTimestamp);
                                     if (parsedDate)
                                     {
-                                        DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixTimestamp).UtcDateTime.Date;
+                                        DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixTimestamp).Date;
                                         formattedDate = date.ToString("dd/MM/yyyy");
                                     }
                                     else formattedDate = "Date malformé";
@@ -258,7 +275,7 @@ namespace Gestionnaire
                             }
                             else
                             {
-                                DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).UtcDateTime.Date;
+                                DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).Date;
                                 Methodes.PrintConsole(Config.sourceApplicationController, "La mission de " + fullname + " le " + date.ToString("dd/MM/yyyy"));
                                 Methodes.PrintConsole(Config.sourceApplicationController, "Description: " + mission.Description + ".\n");
                             }
@@ -300,8 +317,8 @@ namespace Gestionnaire
                                     bool eparsedDate = long.TryParse(eformattedDate, out long eunixTimestamp);
                                     if (sparsedDate && eparsedDate)
                                     {
-                                        DateTime sdate = DateTimeOffset.FromUnixTimeSeconds(sunixTimestamp).UtcDateTime.Date;
-                                        DateTime edate = DateTimeOffset.FromUnixTimeSeconds(eunixTimestamp).UtcDateTime.Date;
+                                        DateTime sdate = DateTimeOffset.FromUnixTimeSeconds(sunixTimestamp).Date;
+                                        DateTime edate = DateTimeOffset.FromUnixTimeSeconds(eunixTimestamp).Date;
                                         sformattedDate = sdate.ToString("dd/MM/yyyy");
                                         eformattedDate = edate.ToString("dd/MM/yyyy");
                                     }
@@ -316,7 +333,7 @@ namespace Gestionnaire
                             }
                             else
                             {
-                                DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).UtcDateTime.Date;
+                                DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).Date;
                                 Methodes.PrintConsole(Config.sourceApplicationController, fullname + " était en déplacement le " + date.ToString("dd/MM/yyyy"));
                                 Methodes.PrintConsole(Config.sourceApplicationController, "Date de début: " + (!string.IsNullOrWhiteSpace(workTravel.StartDate) ? workTravel.StartDate : "Non spécifiée") + ".\n");
                                 Methodes.PrintConsole(Config.sourceApplicationController, "Date de fin: " + (!string.IsNullOrWhiteSpace(workTravel.EndDate) ? workTravel.EndDate : "Non spécifiée") + ".\n");
@@ -330,14 +347,16 @@ namespace Gestionnaire
                 case 6:
                     {
                         int codePINAttempts = 0;
-                        retryCodePIN: string adminPanelPIN = Methodes.ReadUserInput("Enter le code PIN requis pour accéder à cette option: ", true) ?? string.Empty;
+                    retryCodePIN: string adminPanelPIN = Methodes.ReadUserInput("Enter le code PIN requis pour accéder à cette option: ", true) ?? string.Empty;
                         codePINAttempts += 1;
                         _ = int.TryParse(adminPanelPIN, out int ParsedPIN);
-                        if (Config.adminSettingsPIN == ParsedPIN) {
+                        if (Config.adminSettingsPIN == ParsedPIN)
+                        {
                             AdministrationPanel();
                             break;
                         }
-                        if (codePINAttempts > 2) {
+                        if (codePINAttempts > 2)
+                        {
                             ShowContinuePrompt();
                             break;
                         }
@@ -345,13 +364,13 @@ namespace Gestionnaire
                         goto retryCodePIN;
                         break;
                     }
-                    case 7:
+                case 7:
                     {
                         string response = Methodes.ReadUserInput("Est-ce que vous voulez êtes sûr que vous voulez fermer l'application? (OUI/NON): ") ?? string.Empty;
                         if (!string.IsNullOrWhiteSpace(response) && response.Equals("oui", StringComparison.OrdinalIgnoreCase)) Environment.Exit(0);
                         break;
                     }
-                    case 8:
+                case 8:
                     {
                         if (Config.productionRun) return "Erreur, Votre choix doit être entre 1 et 7, Veuillez réssayer s'il vous plaît...";
                         if (Config.productionRun)
@@ -401,13 +420,20 @@ namespace Gestionnaire
             }
             return "";
         }
+
+        /// <summary>
+        /// Récupère les informations nécessaires sur un membre du personnel, y compris son nom, son identifiant et une date facultative.
+        /// </summary>
+        /// <param name="contractorName">Nom complet du membre ciblé, nettoyé et validé.</param>
+        /// <param name="contractorId">Identifiant unique du membre, ou -1 si introuvable.</param>
+        /// <param name="unixdate">Date en format Unix (secondes depuis l'époque Unix), ou -1 si non spécifiée ou invalide.</param>
         private static void GetData(out string contractorName, out int contractorId, out long unixdate)
         {
             contractorName = Methodes.ReadUserInput("Enter le nom et prénom du membre ciblé(e): ") ?? string.Empty;
             string date = Methodes.ReadUserInput("Enter une date précise (facultative) (dd/mm/aaaa): ") ?? string.Empty;
 
             Methodes.PrintConsole(Config.sourceApplicationController, "Votre demande est en cours de traitement, Veuillez patientez s'il vous plaît...");
-            string cleanedName = MyRegex().Replace(contractorName.Trim(), " ");         
+            string cleanedName = MyRegex().Replace(contractorName.Trim(), " ");
             Contracts contractor = new(cleanedName);
 
             if (contractor.IsNull)
@@ -421,9 +447,9 @@ namespace Gestionnaire
                 contractorName = contractor.Fullname;
             }
 
-            if (DateTime.TryParse(date, out DateTime dateTime))
+            if (DateTime.TryParse(date, out var dateTime))
             {
-                DateTimeOffset dto = new(dateTime.ToUniversalTime());
+                DateTimeOffset dto = dateTime.Date;
                 unixdate = dto.ToUnixTimeSeconds();
             }
             else
@@ -431,6 +457,11 @@ namespace Gestionnaire
                 unixdate = -1;
             }
         }
+
+        /// <summary>
+        /// Affiche le panneau d'administration pour gérer les fonctions, barèmes et les membres du personnel.
+        /// Permet de revenir au menu principal.
+        /// </summary>
         private static void AdministrationPanel()
         {
             string ErrorMessage = "";
@@ -457,6 +488,15 @@ namespace Gestionnaire
                 }
             }
         }
+
+        /// <summary>
+        /// Exécute le service administrative correspondant au numéro saisi par l'utilisateur.
+        /// </summary>
+        /// <param name="service">Le numéro du service sélectionné par l'utilisateur.</param>
+        /// <returns>
+        /// Un message d'erreur si le service est invalide ou si une erreur s'est produite pendant l'exécution.
+        /// Retourne une chaîne vide si le service s'exécute sans erreur.
+        /// </returns>
         private static string RunAdminService(int service)
         {
             Console.WriteLine("\n");
@@ -464,7 +504,7 @@ namespace Gestionnaire
             {
                 case 1:
                     {
-                        retryJobsManagement:
+                    retryJobsManagement:
                         if (Config.productionRun)
                         {
                             Console.Clear();
@@ -487,7 +527,7 @@ namespace Gestionnaire
                     }
                 case 2:
                     {
-                        retryStaffManagement:
+                    retryStaffManagement:
                         if (Config.productionRun)
                         {
                             Console.Clear();
@@ -639,7 +679,7 @@ namespace Gestionnaire
                             goto retryCrewMemberName;
                         }
 
-                    retryCrewMemberGSM: string crewMemberGSM = Methodes.ReadUserInput( "Entrer le numéro GSM du nouveau membre: ") ?? string.Empty;
+                    retryCrewMemberGSM: string crewMemberGSM = Methodes.ReadUserInput("Entrer le numéro GSM du nouveau membre: ") ?? string.Empty;
 
                         if (string.IsNullOrWhiteSpace(crewMemberGSM) || crewMemberGSM.Length < 10 || !Methodes.IsNumeric(crewMemberGSM))
                         {
@@ -667,7 +707,7 @@ namespace Gestionnaire
                         long crewMemberUnixEndDate = 0;
                         if (!string.IsNullOrWhiteSpace(crewMemberEndDate))
                         {
-                            if (DateTime.TryParse(crewMemberEndDate, out var d)) crewMemberUnixEndDate = ((DateTimeOffset)d.ToUniversalTime()).ToUnixTimeSeconds();
+                            if (DateTime.TryParse(crewMemberEndDate, out var d)) crewMemberUnixEndDate = ((DateTimeOffset)d).ToUnixTimeSeconds();
                             else
                             {
                                 Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, La date doit être valide.");
@@ -726,13 +766,13 @@ namespace Gestionnaire
                     }
                 case 7:
                     {
-                        retryCrewMemberName: string crewMemberName = Methodes.ReadUserInput("Entrer le nom complète du membre que vous souhaiter gérer: ") ?? string.Empty;
+                    retryCrewMemberName: string crewMemberName = Methodes.ReadUserInput("Entrer le nom complète du membre que vous souhaiter gérer: ") ?? string.Empty;
                         if (string.IsNullOrWhiteSpace(crewMemberName) || crewMemberName.Length < 8)
                         {
                             Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, Le nom complète doit avoir au moins 8 caractères et ne doit pas être vide.");
                             goto retryCrewMemberName;
                         }
-                        string cleanedName = MyRegex().Replace(crewMemberName.Trim(), " "); 
+                        string cleanedName = MyRegex().Replace(crewMemberName.Trim(), " ");
                         Contracts contract = new(cleanedName);
 
                         if (contract.IsNull)
@@ -742,10 +782,9 @@ namespace Gestionnaire
                             RunAdminService(2);
                             break;
                         }
-                        else if (contract.EndDate < DateTimeOffset.UtcNow.ToUnixTimeSeconds() && contract.EndDate > 0)
+                        else if (contract.EndDate < DateTimeOffset.Now.ToUnixTimeSeconds() && contract.EndDate > 0)
                         {
-                            DateTime datetime = DateTimeOffset.FromUnixTimeSeconds(contract.EndDate).UtcDateTime.Date;
-                            Console.Write(contract.EndDate);
+                            DateTime datetime = DateTimeOffset.FromUnixTimeSeconds(contract.EndDate).Date;
                             Methodes.PrintConsole(Config.sourceApplicationController, $"le contrat de {crewMemberName} a été mis en fin le {datetime.ToString("dd/MM/yyyy")}.");
                             ShowContinuePrompt();
                             RunAdminService(2);
@@ -799,7 +838,7 @@ namespace Gestionnaire
                                             Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, la date ne doit pas être dans le futur.");
                                             goto retryAbsenceDate;
                                         }
-                                        crewMemberUnixDate = ((DateTimeOffset)d.ToUniversalTime()).ToUnixTimeSeconds();
+                                        crewMemberUnixDate = ((DateTimeOffset)d).ToUnixTimeSeconds();
                                     }
                                     else
                                     {
@@ -823,9 +862,9 @@ namespace Gestionnaire
 
                                 if (!string.IsNullOrWhiteSpace(crewMemberAbsenceDate))
                                 {
-                                    if (DateTime.TryParse(crewMemberAbsenceDate, out DateTime dateTime))
+                                    if (DateTime.TryParse(crewMemberAbsenceDate, out var dateTime))
                                     {
-                                        DateTimeOffset dto = new(dateTime.ToUniversalTime());
+                                        DateTimeOffset dto = dateTime.Date;
                                         crewMemberUnixDate = dto.ToUnixTimeSeconds();
                                         if (dateTime > DateTime.Now)
                                         {
@@ -877,14 +916,14 @@ namespace Gestionnaire
                             else if (selectedOption == 4)
                             {
                                 Training training = new(contract.ContractorId);
-                                int currentYear = DateTime.UtcNow.Year;
+                                int currentYear = DateTime.Now.Year;
                                 int count = 0, totalcount = 0;
 
                                 List<QueryResultRow> row = training.ListTraining;
                                 for (int i = 0; i < row.Count; i++)
                                 {
                                     _ = long.TryParse(row[i]["date"], out long unixdate);
-                                    DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).UtcDateTime;
+                                    DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).Date;
                                     if (date.Year == currentYear)
                                     {
                                         count++;
@@ -911,7 +950,7 @@ namespace Gestionnaire
                                             Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, la date doit être dans le futur.");
                                             goto retryTrainingDate;
                                         }
-                                        crewMemberUnixDate = ((DateTimeOffset)d.ToUniversalTime()).ToUnixTimeSeconds();
+                                        crewMemberUnixDate = ((DateTimeOffset)d).ToUnixTimeSeconds();
                                     }
                                     else
                                     {
@@ -973,7 +1012,7 @@ namespace Gestionnaire
                             else if (selectedOption == 5)
                             {
                                 PaidLeave paidLeave = new(contract.ContractorId);
-                                int currentYear = DateTime.UtcNow.Year;
+                                int currentYear = DateTime.Now.Year;
                                 int count = 0;
 
 
@@ -982,8 +1021,8 @@ namespace Gestionnaire
                                 {
                                     _ = long.TryParse(row[i]["startDate"], out long unixsdate);
                                     _ = long.TryParse(row[i]["endDate"], out long unixedate);
-                                    DateTime sdate = DateTimeOffset.FromUnixTimeSeconds(unixsdate).UtcDateTime;
-                                    DateTime edate = DateTimeOffset.FromUnixTimeSeconds(unixedate).UtcDateTime;
+                                    DateTime sdate = DateTimeOffset.FromUnixTimeSeconds(unixsdate).Date;
+                                    DateTime edate = DateTimeOffset.FromUnixTimeSeconds(unixedate).Date;
                                     TimeSpan span = edate - sdate;
 
                                     if (sdate.Year == currentYear)
@@ -995,7 +1034,7 @@ namespace Gestionnaire
                                 int totalbonus = 0;
                                 if (contract.Job == "Employé")
                                 {
-                                    long secondsTotal = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - contract.StartDate;
+                                    long secondsTotal = DateTimeOffset.Now.ToUnixTimeSeconds() - contract.StartDate;
                                     double yearsTotal = secondsTotal / (365 * 24 * 60 * 60);
                                     totalbonus = (int)(yearsTotal / 3);
                                 }
@@ -1024,8 +1063,8 @@ namespace Gestionnaire
                                         Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, la date du début et du fin doit être dans le futur.");
                                         goto retryPaidLeave;
                                     }
-                                    paidLeaveUnixStartDate = ((DateTimeOffset)((DateTimeOffset)sd).UtcDateTime.Date).ToUnixTimeSeconds();
-                                    paidLeaveUnixEndDate = ((DateTimeOffset)((DateTimeOffset)ed).UtcDateTime.Date).ToUnixTimeSeconds();
+                                    paidLeaveUnixStartDate = ((DateTimeOffset)sd.Date).ToUnixTimeSeconds();
+                                    paidLeaveUnixEndDate = ((DateTimeOffset)ed.Date).ToUnixTimeSeconds();
 
                                     TimeSpan difference = ed - sd;
                                     int paidLeaveDaysLeft = 20 + totalbonus - count;
@@ -1071,25 +1110,25 @@ namespace Gestionnaire
                                     Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, Les deux date doit être valide et ne doit pas être vide.");
                                     goto retryWorkTravel;
                                 }
-                                if (DateTime.TryParse(workTravelStartDate, out var sd) && DateTime.TryParse(workTravelEndDate, out var ed))
+                                if (DateTime.TryParse(workTravelStartDate, out DateTime sd) && DateTime.TryParse(workTravelEndDate, out DateTime ed))
                                 {
                                     if (sd < DateTime.Now || ed < DateTime.Now || ed <= sd)
                                     {
                                         Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, la date du début et du fin doit être dans le futur.");
                                         goto retryWorkTravel;
                                     }
-                                    workTravelUnixStartDate = ((DateTimeOffset)sd.ToUniversalTime()).ToUnixTimeSeconds();
-                                    workTravelUnixEndDate = ((DateTimeOffset)ed.ToUniversalTime()).ToUnixTimeSeconds();
+                                    workTravelUnixStartDate = new DateTimeOffset(sd).ToUnixTimeSeconds();
+                                    workTravelUnixEndDate = new DateTimeOffset(ed).ToUnixTimeSeconds();
                                 }
 
-                            retryWorkTravelAddr: string WorkTravelAddr = Methodes.ReadUserInput("Enter l'adresse du mission: ") ?? string.Empty;
+                            retryWorkTravelAddr: string WorkTravelAddr = Methodes.ReadUserInput("Enter l'adresse du déplacement: ") ?? string.Empty;
                                 if (string.IsNullOrWhiteSpace(WorkTravelAddr) || WorkTravelAddr.Length < 15)
                                 {
                                     Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, L'adresse doit être composée d'au moins 15 caractères et ne doit pas être vide.");
                                     goto retryWorkTravelAddr;
                                 }
 
-                            retryWorkTravelDescription: string WorkTravelDescription = Methodes.ReadUserInput("Enter la description du mission: ") ?? string.Empty;
+                            retryWorkTravelDescription: string WorkTravelDescription = Methodes.ReadUserInput("Enter la description du déplacement: ") ?? string.Empty;
                                 if (string.IsNullOrWhiteSpace(WorkTravelDescription) || WorkTravelDescription.Length < 24)
                                 {
                                     Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, La description doit être composée d'au moins 24 caractères et ne doit pas être vide.");
@@ -1127,7 +1166,7 @@ namespace Gestionnaire
                                             Methodes.PrintConsole(Config.sourceApplicationController, "Erreur, la date doit être dans le futur.");
                                             goto retryMissionDate;
                                         }
-                                        missionUnixDate = ((DateTimeOffset)d.ToUniversalTime()).ToUnixTimeSeconds();
+                                        missionUnixDate = ((DateTimeOffset)d).ToUnixTimeSeconds();
                                     }
                                     else
                                     {
@@ -1180,6 +1219,11 @@ namespace Gestionnaire
             }
             return "";
         }
+
+        /// <summary>
+        /// Affiche un message invitant l'utilisateur à appuyer sur une touche pour revenir au menu précédent.
+        /// En mode non-production, cette invite est ignorée.
+        /// </summary>
         private static void ShowContinuePrompt()
         {
             if (!Config.productionRun) return;
@@ -1194,6 +1238,9 @@ namespace Gestionnaire
             }
         }
 
+        /// <summary>
+        /// Expression régulière générée pour détecter un ou plusieurs espaces consécutifs.
+        /// </summary>
         [GeneratedRegex(@"\s+")]
         private static partial Regex MyRegex();
     }
