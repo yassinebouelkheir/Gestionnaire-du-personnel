@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace Gestionnaire
@@ -68,6 +69,8 @@ namespace Gestionnaire
                         GetData(out string fullname, out int contractorId, out long unixdate);
                         if (contractorId < 0) return "Erreur, Le nom du membre que vous avez entré est incorrect, Veuillez réssayer s'il vous plaît...";
 
+                        Console.WriteLine(unixdate);
+                        
                         Absence absence = new(contractorId, unixdate);
                         if (absence.IsNull)
                         {
@@ -91,22 +94,20 @@ namespace Gestionnaire
                                     List<QueryResultRow> row = absence.ListAbsence;
                                     string doc = !string.IsNullOrWhiteSpace(row[i]["justificativeDocument"]) ? "Déposé" : "Aucun document";
                                     string formattedDate = !string.IsNullOrWhiteSpace(row[i]["date"]) ? row[i]["date"] : "-1";
-
-                                    bool parsedDate = long.TryParse(formattedDate, out long unixTimestamp);
-                                    if (parsedDate)
+                                    if (formattedDate != "-1")
                                     {
-                                        DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixTimestamp).Date;
-                                        formattedDate = date.ToString("dd/MM/yyyy");
+                                        DateTimeOffset dto = DateTimeOffset.FromUnixTimeSeconds(unixdate);
+                                        DateTimeOffset localDateTime = dto.ToOffset(TimeZoneInfo.Local.GetUtcOffset(dto));
+                                        formattedDate = localDateTime.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
                                     }
-                                    else formattedDate = "Date malformé";
-
                                     Methodes.PrintConsole(Config.sourceApplicationController, $"- Date: {formattedDate} Document : {doc}");
                                 }
                             }
                             else
                             {
-                                DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).Date;
-                                Methodes.PrintConsole(Config.sourceApplicationController, fullname + " a été absent le " + date.ToString("dd/MM/yyyy") + " Document: " + (!string.IsNullOrWhiteSpace(absence.JustificativeDocument) ? "Déposé" : "Aucun document") + ".\n");
+                                DateTimeOffset dto = DateTimeOffset.FromUnixTimeSeconds(unixdate);
+                                DateTimeOffset localDateTime = dto.ToOffset(TimeZoneInfo.Local.GetUtcOffset(dto));
+                                Methodes.PrintConsole(Config.sourceApplicationController, fullname + " a été absent le " + localDateTime.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) + " Document: " + (!string.IsNullOrWhiteSpace(absence.JustificativeDocument) ? "Déposé" : "Aucun document") + ".\n");
                                 if (!string.IsNullOrWhiteSpace(absence.JustificativeDocument))
                                 {
                                     string response = Methodes.ReadUserInput("Est-ce que vous voulez télécharger le justificative fournis par le membre? (OUI/NON): ") ?? string.Empty;
@@ -149,20 +150,16 @@ namespace Gestionnaire
                                     string reason = !string.IsNullOrWhiteSpace(row[i]["reason"]) ? row[i]["reason"] : "Non spécifiée";
                                     string sformattedDate = !string.IsNullOrWhiteSpace(row[i]["startDate"]) ? row[i]["startDate"] : "-1";
                                     string eformattedDate = !string.IsNullOrWhiteSpace(row[i]["endDate"]) ? row[i]["endDate"] : "-1";
+                                    if (long.TryParse(sformattedDate, out long sTimestamp) && long.TryParse(eformattedDate, out long eTimestamp))
+                                    {
+                                        DateTimeOffset sdto = DateTimeOffset.FromUnixTimeSeconds(sTimestamp);
+                                        DateTimeOffset edto = DateTimeOffset.FromUnixTimeSeconds(eTimestamp);
 
-                                    bool sparsedDate = long.TryParse(sformattedDate, out long sunixTimestamp);
-                                    bool eparsedDate = long.TryParse(eformattedDate, out long eunixTimestamp);
-                                    if (sparsedDate && eparsedDate)
-                                    {
-                                        DateTime sdate = DateTimeOffset.FromUnixTimeSeconds(sunixTimestamp).Date;
-                                        DateTime edate = DateTimeOffset.FromUnixTimeSeconds(eunixTimestamp).Date;
-                                        sformattedDate = sdate.ToString("dd/MM/yyyy");
-                                        eformattedDate = edate.ToString("dd/MM/yyyy");
-                                    }
-                                    else
-                                    {
-                                        eformattedDate = "Date malformé";
-                                        sformattedDate = "Date malformé";
+                                        DateTimeOffset slocalDateTime = sdto.ToOffset(TimeZoneInfo.Local.GetUtcOffset(sdto));
+                                        DateTimeOffset elocalDateTime = edto.ToOffset(TimeZoneInfo.Local.GetUtcOffset(edto));
+
+                                        sformattedDate = slocalDateTime.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
+                                        eformattedDate = elocalDateTime.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
                                     }
 
                                     Methodes.PrintConsole(Config.sourceApplicationController, $"- Date de début: {sformattedDate} Date de fin: {eformattedDate} Raison : {reason}");
@@ -170,8 +167,9 @@ namespace Gestionnaire
                             }
                             else
                             {
-                                DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).Date;
-                                Methodes.PrintConsole(Config.sourceApplicationController, fullname + " bénéfice d'un congé payé le " + date.ToString("dd/MM/yyyy"));
+                                DateTimeOffset dto = DateTimeOffset.FromUnixTimeSeconds(unixdate);
+                                DateTimeOffset localDateTime = dto.ToOffset(TimeZoneInfo.Local.GetUtcOffset(dto));
+                                Methodes.PrintConsole(Config.sourceApplicationController, fullname + " bénéfice d'un congé payé le " + localDateTime.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture));
                                 Methodes.PrintConsole(Config.sourceApplicationController, "Date de début: " + (!string.IsNullOrWhiteSpace(paidLeave.StartDate) ? paidLeave.StartDate : "Non spécifiée") + ".\n");
                                 Methodes.PrintConsole(Config.sourceApplicationController, "Date de fin: " + (!string.IsNullOrWhiteSpace(paidLeave.EndDate) ? paidLeave.EndDate : "Non spécifiée") + ".\n");
                                 Methodes.PrintConsole(Config.sourceApplicationController, "Raison: " + (!string.IsNullOrWhiteSpace(paidLeave.Reason) ? paidLeave.Reason : "Non spécifiée") + ".\n");
@@ -223,8 +221,9 @@ namespace Gestionnaire
                             }
                             else
                             {
-                                DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).Date;
-                                Methodes.PrintConsole(Config.sourceApplicationController, fullname + " bénéfice d'une formation le " + date.ToString("dd/MM/yyyy"));
+                                DateTimeOffset dto = DateTimeOffset.FromUnixTimeSeconds(unixdate);
+                                DateTimeOffset localDateTime = dto.ToOffset(TimeZoneInfo.Local.GetUtcOffset(dto));
+                                Methodes.PrintConsole(Config.sourceApplicationController, fullname + " bénéfice d'une formation le " + localDateTime.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture));
                                 Methodes.PrintConsole(Config.sourceApplicationController, "Type: " + (!string.IsNullOrWhiteSpace(training.Type) ? training.Type : "Non spécifiée"));
                                 Methodes.PrintConsole(Config.sourceApplicationController, "Formateur: " + (!string.IsNullOrWhiteSpace(training.Trainer) ? training.Trainer : "Non spécifiée"));
                                 Methodes.PrintConsole(Config.sourceApplicationController, "Adresse: " + training.Address + ".\n");
@@ -275,8 +274,9 @@ namespace Gestionnaire
                             }
                             else
                             {
-                                DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).Date;
-                                Methodes.PrintConsole(Config.sourceApplicationController, "La mission de " + fullname + " le " + date.ToString("dd/MM/yyyy"));
+                                DateTimeOffset dto = DateTimeOffset.FromUnixTimeSeconds(unixdate);
+                                DateTimeOffset localDateTime = dto.ToOffset(TimeZoneInfo.Local.GetUtcOffset(dto));
+                                Methodes.PrintConsole(Config.sourceApplicationController, "La mission de " + fullname + " le " + localDateTime.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture));
                                 Methodes.PrintConsole(Config.sourceApplicationController, "Description: " + mission.Description + ".\n");
                             }
                         }
@@ -313,19 +313,16 @@ namespace Gestionnaire
                                     string sformattedDate = !string.IsNullOrWhiteSpace(row[i]["startDate"]) ? row[i]["startDate"] : "-1";
                                     string eformattedDate = !string.IsNullOrWhiteSpace(row[i]["endDate"]) ? row[i]["endDate"] : "-1";
 
-                                    bool sparsedDate = long.TryParse(sformattedDate, out long sunixTimestamp);
-                                    bool eparsedDate = long.TryParse(eformattedDate, out long eunixTimestamp);
-                                    if (sparsedDate && eparsedDate)
+                                    if (long.TryParse(sformattedDate, out long sTimestamp) && long.TryParse(eformattedDate, out long eTimestamp))
                                     {
-                                        DateTime sdate = DateTimeOffset.FromUnixTimeSeconds(sunixTimestamp).Date;
-                                        DateTime edate = DateTimeOffset.FromUnixTimeSeconds(eunixTimestamp).Date;
-                                        sformattedDate = sdate.ToString("dd/MM/yyyy");
-                                        eformattedDate = edate.ToString("dd/MM/yyyy");
-                                    }
-                                    else
-                                    {
-                                        eformattedDate = "Date malformé";
-                                        sformattedDate = "Date malformé";
+                                        DateTimeOffset sdto = DateTimeOffset.FromUnixTimeSeconds(sTimestamp);
+                                        DateTimeOffset edto = DateTimeOffset.FromUnixTimeSeconds(eTimestamp);
+
+                                        DateTimeOffset slocalDateTime = sdto.ToOffset(TimeZoneInfo.Local.GetUtcOffset(sdto));
+                                        DateTimeOffset elocalDateTime = edto.ToOffset(TimeZoneInfo.Local.GetUtcOffset(edto));
+
+                                        sformattedDate = slocalDateTime.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
+                                        eformattedDate = elocalDateTime.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
                                     }
 
                                     Methodes.PrintConsole(Config.sourceApplicationController, $"- Date de début: {sformattedDate} Date de fin: {eformattedDate} Address : {address}");
@@ -333,8 +330,9 @@ namespace Gestionnaire
                             }
                             else
                             {
-                                DateTime date = DateTimeOffset.FromUnixTimeSeconds(unixdate).Date;
-                                Methodes.PrintConsole(Config.sourceApplicationController, fullname + " était en déplacement le " + date.ToString("dd/MM/yyyy"));
+                                DateTimeOffset dto = DateTimeOffset.FromUnixTimeSeconds(unixdate);
+                                DateTimeOffset localDateTime = dto.ToOffset(TimeZoneInfo.Local.GetUtcOffset(dto));
+                                Methodes.PrintConsole(Config.sourceApplicationController, fullname + " était en déplacement le " + localDateTime.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture));
                                 Methodes.PrintConsole(Config.sourceApplicationController, "Date de début: " + (!string.IsNullOrWhiteSpace(workTravel.StartDate) ? workTravel.StartDate : "Non spécifiée") + ".\n");
                                 Methodes.PrintConsole(Config.sourceApplicationController, "Date de fin: " + (!string.IsNullOrWhiteSpace(workTravel.EndDate) ? workTravel.EndDate : "Non spécifiée") + ".\n");
                                 Methodes.PrintConsole(Config.sourceApplicationController, "Adresse: " + (!string.IsNullOrWhiteSpace(workTravel.Address) ? workTravel.Address : "Non spécifiée") + ".\n");
@@ -383,6 +381,7 @@ namespace Gestionnaire
                         Methodes.PrintConsole(Config.sourceApplicationController, "2. Vider les tables de la base de donnée (sauf jobs et users)");
                         Methodes.PrintConsole(Config.sourceApplicationController, "3. Générer les salaires dans la table 'payments'");
                         Methodes.PrintConsole(Config.sourceApplicationController, "4. Télécharger tout les fiche de paie généré ce mois là (de la table 'payments')");
+                        Methodes.PrintConsole(Config.sourceApplicationController, "5. Générer une exception");
                         Methodes.PrintConsole(Config.sourceApplicationController, "5. Générer une exception");
                         Methodes.PrintConsole(Config.sourceApplicationController, "X. Revenir au menu principal");
                         string response = Methodes.ReadUserInput("Votre choix (1-X): ") ?? string.Empty;
@@ -447,9 +446,9 @@ namespace Gestionnaire
                 contractorName = contractor.Fullname;
             }
 
-            if (DateTime.TryParse(date, out var dateTime))
+            if (DateTime.TryParseExact(date, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var dateTime))
             {
-                DateTimeOffset dto = dateTime.Date;
+                DateTimeOffset dto = new(dateTime.Date, TimeZoneInfo.Local.GetUtcOffset(dateTime.Date));
                 unixdate = dto.ToUnixTimeSeconds();
             }
             else

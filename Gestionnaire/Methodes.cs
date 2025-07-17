@@ -103,7 +103,7 @@ namespace Gestionnaire
                 Console.Write($"[Gestionnaire::Methodes {timestamp}]: {text}");
             }
 
-            if (Config.productionRun || Program.TestProgression > 133)
+            if (Config.productionRun || Program.TestProgression > 132)
             {
                 if (!ispassword) return Console.ReadLine() ?? "";
 

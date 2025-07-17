@@ -208,14 +208,9 @@ namespace Gestionnaire
             string query = "SELECT justificativeDocument, date FROM Absences WHERE contractorId = @contractorId";
             if (date > 0)
             {
-                var dateTimeUtc = DateTimeOffset.FromUnixTimeSeconds(date).UtcDateTime.Date;
-
-                var startOfDay = new DateTimeOffset(dateTimeUtc, TimeSpan.Zero).ToUnixTimeSeconds();
-                var endOfDay = new DateTimeOffset(dateTimeUtc.AddDays(1).AddSeconds(-1), TimeSpan.Zero).ToUnixTimeSeconds();
-
                 query += " AND date BETWEEN @startOfDay AND @endOfDay";
-                parameters["@startOfDay"] = startOfDay;
-                parameters["@endOfDay"] = endOfDay;
+                parameters["@startOfDay"] = date;
+                parameters["@endOfDay"] = date + 86399;
             }
             query += " ORDER BY date DESC";
 
@@ -319,12 +314,8 @@ namespace Gestionnaire
 
             if (date > 0)
             {
-                var dateTimeUtc = DateTimeOffset.FromUnixTimeSeconds(date).UtcDateTime.Date;
-
-                var startOfDay = new DateTimeOffset(dateTimeUtc, TimeSpan.Zero).ToUnixTimeSeconds();
-
-                query += " AND endDate <= @startOfDay AND startDate >= @startOfDay";
-                parameters["@startOfDay"] = startOfDay;
+                query += " AND @leaveDate BETWEEN startDate AND endDate";
+                parameters["@leaveDate"] = date;
             }
             query += " ORDER BY endDate DESC";
 
@@ -393,14 +384,9 @@ namespace Gestionnaire
 
             if (date > 0)
             {
-                var dateTimeUtc = DateTimeOffset.FromUnixTimeSeconds(date).UtcDateTime.Date;
-
-                var startOfDay = new DateTimeOffset(dateTimeUtc, TimeSpan.Zero).ToUnixTimeSeconds();
-                var endOfDay = new DateTimeOffset(dateTimeUtc.AddDays(1).AddSeconds(-1), TimeSpan.Zero).ToUnixTimeSeconds();
-
                 query += " AND date BETWEEN @startOfDay AND @endOfDay";
-                parameters["@startOfDay"] = startOfDay;
-                parameters["@endOfDay"] = endOfDay;
+                parameters["@startOfDay"] = date;
+                parameters["@endOfDay"] = date + 86399;
             }
             query += " ORDER BY date DESC";
 
@@ -456,14 +442,9 @@ namespace Gestionnaire
 
             if (date > 0)
             {
-                var dateTimeUtc = DateTimeOffset.FromUnixTimeSeconds(date).UtcDateTime.Date;
-
-                var startOfDay = new DateTimeOffset(dateTimeUtc, TimeSpan.Zero).ToUnixTimeSeconds();
-                var endOfDay = new DateTimeOffset(dateTimeUtc.AddDays(1).AddSeconds(-1), TimeSpan.Zero).ToUnixTimeSeconds();
-
                 query += " AND date BETWEEN @startOfDay AND @endOfDay";
-                parameters["@startOfDay"] = startOfDay;
-                parameters["@endOfDay"] = endOfDay;
+                parameters["@startOfDay"] = date;
+                parameters["@endOfDay"] = date + 86399;
             }
             query += " ORDER BY date DESC";
 
@@ -532,12 +513,8 @@ namespace Gestionnaire
 
             if (date > 0)
             {
-                var dateTimeUtc = DateTimeOffset.FromUnixTimeSeconds(date).UtcDateTime.Date;
-
-                var startOfDay = new DateTimeOffset(dateTimeUtc, TimeSpan.Zero).ToUnixTimeSeconds();
-
-                query += " AND endDate >= @startOfDay AND startDate <= @startOfDay";
-                parameters["@startOfDay"] = startOfDay;
+                query += " AND @leaveDate BETWEEN startDate AND endDate";
+                parameters["@leaveDate"] = date;
             }
             query += " ORDER BY endDate DESC";
 
