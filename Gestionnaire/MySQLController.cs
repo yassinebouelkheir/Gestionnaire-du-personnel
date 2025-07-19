@@ -4,23 +4,35 @@ namespace Gestionnaire
 {
     public class MySQLController
     {
+        public virtual MySqlConnection GetConnection() => new(connectionString);
+
         private readonly string connectionString =
             $"Server={Config.mysqlServer};Database={Config.mysqlDatabase};Uid={Config.mysqlUsername};Pwd={Config.mysqlPassword};Port={Config.mysqlPort};";
-        
         /// <summary>
         /// Constructeur de MySQLController.
         /// Initialise la connexion à la base de données et charge les paramètres initiaux.
         /// </summary>
-        public MySQLController()
+        public MySQLController(bool unitTesting = false)
         {
             Initialization();
-            InsertSelekton();
+            if (!unitTesting) InsertSelekton();
         }
 
         /// <summary>
         /// Établit une connexion à la base de données pour vérifier la disponibilité.
         /// Affiche les messages d'état et termine le programme en cas d'erreur.
         /// </summary>
+        /// <exception cref="SqlException">
+        /// Levée si la connexion à la base de données échoue.
+        /// Peut survenir en cas de chaîne de connexion invalide, serveur inaccessible,
+        /// ou problème d'authentification.
+        /// </exception>
+        /// <exception cref="InvalidOperationException">
+        /// Levée si la tentative d'ouverture de la connexion échoue pour une raison interne.
+        /// </exception>
+        /// <remarks>
+        /// En cas d'échec, le programme est volontairement arrêté après l'affichage d’un message.
+        /// </remarks>
         private void Initialization()
         {
             try
@@ -43,6 +55,13 @@ namespace Gestionnaire
         /// Exécute la requête de création ou insertion des paramètres initiaux (squelette).
         /// Affiche un message en cas d'erreur fatale.
         /// </summary>
+        /// <exception cref="SqlException">
+        /// Levée si la requête de création ou insertion échoue, par exemple en cas d'erreur syntaxique,
+        /// de problème de connexion ou de violation de contrainte.
+        /// </exception>
+        /// <remarks>
+        /// En cas d'erreur fatale, un message est affiché pour informer l'utilisateur.
+        /// </remarks>
         private void InsertSelekton()
         {
             try
@@ -67,7 +86,12 @@ namespace Gestionnaire
         /// </summary>
         /// <param name="query">Requête SQL d'insertion ou mise à jour</param>
         /// <param name="parameters">Dictionnaire des paramètres SQL, peut être null</param>
-        public void InsertData(string query, Dictionary<string, object>? parameters = null)
+        /// <returns>Nombre de lignes affectées par la requête</returns>
+        /// <exception cref="SqlException">
+        /// Levée si l'exécution de la requête SQL échoue, par exemple en cas d'erreur de syntaxe,
+        /// de problème de connexion à la base de données ou de paramètre invalide.
+        /// </exception>
+        public bool InsertData(string query, Dictionary<string, object>? parameters = null)
         {
             using var controller = new MySqlConnection(connectionString);
             controller.Open();
@@ -80,14 +104,16 @@ namespace Gestionnaire
                     _ = command.Parameters.AddWithValue(param.Key, param.Value ?? DBNull.Value);
                 }
             }
-
-            int queryState = command.ExecuteNonQuery();
-            controller.Close();
-
-            if (!Config.productionRun)
+            try
             {
-                if (queryState == 1) Methodes.PrintConsole(Config.sourceMySQL, "La ligne a été insérée/modifié dans la base de données.");
-                else Methodes.PrintConsole(Config.sourceMySQL, $"Total de {queryState} ligne a été affectée.");
+                int queryState = command.ExecuteNonQuery();
+                controller.Close();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Methodes.PrintConsole(Config.sourceDataset, ex.ToString(), true);
+                return false;
             }
         }
 
@@ -98,6 +124,10 @@ namespace Gestionnaire
         /// <param name="query">Requête SQL de sélection</param>
         /// <param name="parameters">Dictionnaire des paramètres SQL</param>
         /// <returns>Liste des résultats sous forme de QueryResultRow</returns>
+        /// <exception cref="SqlException">
+        /// Levée si l'exécution de la requête SQL échoue, par exemple en cas d'erreur de syntaxe,
+        /// de problème de connexion à la base de données ou de paramètre invalide.
+        /// </exception>
         public List<QueryResultRow> ReadData(string query, Dictionary<string, object> parameters)
         {
             /*
@@ -127,20 +157,28 @@ namespace Gestionnaire
                 }
             }
 
-            using var reader = command.ExecuteReader();
-            while (reader.Read())
+            try
             {
-                var row = new QueryResultRow();
-                for (int i = 0; i < reader.FieldCount; i++)
+                using var reader = command.ExecuteReader();
+                while (reader.Read())
                 {
-                    string columnName = reader.GetName(i);
-                    object? rawValue = reader.IsDBNull(i) ? null : reader.GetValue(i);
-                    string value = rawValue?.ToString() ?? string.Empty;
-                    row.Columns[columnName] = value;
+                    var row = new QueryResultRow();
+                    for (int i = 0; i < reader.FieldCount; i++)
+                    {
+                        string columnName = reader.GetName(i);
+                        object? rawValue = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                        string value = rawValue?.ToString() ?? string.Empty;
+                        row.Columns[columnName] = value;
+                    }
+                    result.Add(row);
                 }
-                result.Add(row);
+                return result;
             }
-            return result;
+            catch (Exception ex)
+            {
+                Methodes.PrintConsole(Config.sourceDataset, ex.ToString(), true);
+                return [];
+            }
         }
     }
 }

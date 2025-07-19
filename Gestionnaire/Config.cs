@@ -1,6 +1,6 @@
 namespace Gestionnaire
 {
-    class Config
+    public class Config
     {
         // Program configuration
         public const bool productionRun = false;

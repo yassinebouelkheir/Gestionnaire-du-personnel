@@ -2,10 +2,24 @@
 
 namespace Gestionnaire
 {
-    class Program
+    public class Program
     {
         public static MySQLController Controller { get; private set; } = null!;
-        public static int TestProgression = 0;
+        private static int _testProgression = 0;
+
+        /// <summary>
+        /// Obtient la progression actuelle du test.
+        /// </summary>
+        /// <remarks>
+        /// Cette propriété est en lecture seule à l'extérieur de la classe.
+        /// La progression ne peut être modifiée que par des méthodes internes.
+        /// </remarks>
+        public static int TestProgression
+        {
+            get => _testProgression;
+            set => _testProgression = value;
+        }
+
 
         /// <summary>
         /// Point d'entrée principal de l'application.

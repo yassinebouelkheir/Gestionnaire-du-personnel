@@ -39,32 +39,12 @@ namespace Gestionnaire
         /// <inheritdoc/>
         public List<QueryResultRow> FetchData(string query, Dictionary<string, object> parameters)
         {
-            try
-            {
-                return Program.Controller.ReadData(query, parameters);
-            }
-            catch (Exception ex)
-            {
-                Methodes.PrintConsole(Config.sourceDataset, ex.ToString(), true);
-                return new List<QueryResultRow>();
-            }
+            return Program.Controller.ReadData(query, parameters);
         }
         /// <inheritdoc/>
         public bool InsertData(string query, Dictionary<string, object> parameters)
         {
-            try
-            {
-                Program.Controller.InsertData(query, parameters);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                if (!Config.productionRun)
-                    Methodes.PrintConsole(Config.sourceDataset, ex.ToString(), false);
-                else
-                    return false;
-            }
-            return false;
+            return Program.Controller.InsertData(query, parameters);
         }
     }
     
