@@ -38,6 +38,7 @@ namespace Gestionnaire
             {
                 Methodes.PrintConsole(Config.sourceApplicationController, "⚠️  Mode test automatique actif, saisie utilisateur momentanément désactivée\n");
             }
+
             ApplicationController Program = new();
         }
     }

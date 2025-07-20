@@ -96,6 +96,7 @@ namespace Gestionnaire
             `hours` int(11) NOT NULL DEFAULT 40,
             `salary` double NOT NULL,
             `fonction` int(11) NOT NULL,
+            `lastupdateDate` double NOT NULL DEFAULT 0,
             PRIMARY KEY (`contractorId`)
             );
 
@@ -339,6 +340,7 @@ namespace Gestionnaire
         public const string sourceProgram = "Program";
         public const string sourceDataset = "Dataset";
         public const string sourceMethodes = "Methodes";
+        public const string sourceTimers = "Timers";
         public const string sourceApplicationController = "ApplicationController";
         /*
             const string source(*)

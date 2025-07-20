@@ -538,6 +538,7 @@ namespace Gestionnaire
     /// <summary>
     /// Représente un contrat de travail pour un contractant.
     /// </summary>
+    
     public class Contracts : ContractorActivity
     {
         /// <summary>ID du contractant.</summary>
@@ -563,6 +564,8 @@ namespace Gestionnaire
         /// <summary>Indique si aucun contrat n'a été trouvé.</summary>
         public bool IsNull { get; private set; } = true;
 
+        public List<QueryResultRow> ListContracts { get; private set; } = new List<QueryResultRow>();
+
         /// <summary>
         /// Charge les données du contrat d'un contractant via son nom complet.
         /// </summary>
@@ -574,10 +577,11 @@ namespace Gestionnaire
                 var parameters = new Dictionary<string, object> { { "@name", fullName } };
                 string query = "SELECT contractorId, fullname, gsm, email, address, startDate, endDate, hours, salary, fonction FROM Contracts WHERE fullName LIKE @name ORDER BY endDate DESC";
 
-                var result = FetchData(query, parameters);
-                if (result.Count > 0)
+                ListContracts = FetchData(query, parameters);
+
+                if (ListContracts.Count > 0)
                 {
-                    var row = result[0];
+                    var row = ListContracts[0];
                     _ = int.TryParse(row["contractorId"], out int id);
                     _ = int.TryParse(row["startDate"], out int sDate);
                     _ = int.TryParse(row["endDate"], out int eDate);
@@ -598,55 +602,53 @@ namespace Gestionnaire
                 }
             }
         }
-        
+
         /// <summary>
         /// Met à jour le salaire du contractant.
         /// </summary>
         /// <param name="salary">Nouveau salaire.</param>
         /// <returns>True si la mise à jour réussit, false sinon.</returns>
-        public bool UpdateSalary(double salary)
+        public bool UpdateSalary(double salary, int lastUpdateUnix)
         {
-            /*
-                Updates the salary of a contractor.
-                @param salary - new salary value
-                @return true if update is successful, false otherwise
-            */
             var parameters = new Dictionary<string, object>
             {
                 { "@contractorId", ContractorId },
-                { "@salary", salary }
+                { "@salary", salary },
+                { "@lastUpdateDate", lastUpdateUnix }
             };
 
-            string query = "";
-            query = "UPDATE Contracts SET salary = @salary WHERE contractorId = @contractorId";
+            string query = "UPDATE Contracts SET salary = @salary, lastUpdateDate = @lastUpdateDate WHERE contractorId = @contractorId";
             return InsertData(query, parameters);
         }
 
+
         /// <summary>
-        /// Insère un nouveau contrat et crée un événement MySQL pour une augmentation récurrente.
+        /// Insère un nouveau contrat.
         /// </summary>
         /// <param name="parameters">Dictionnaire des paramètres du contrat.</param>
         /// <returns>True si l'insertion réussit, false sinon.</returns>
         public bool InsertContract(Dictionary<string, object> parameters)
         {
-            string query = "";
-            query = "INSERT INTO Contracts (fullname, gsm, email, address, endDate, hours, salary, fonction) SELECT * FROM (SELECT @fullName AS fullname, @gsm AS gsm, @email AS email, @address AS address, @endDate AS endDate, @hours AS hours, @salary AS salary, @job AS fonction) AS tmp WHERE NOT EXISTS (SELECT 1 FROM contracts WHERE (gsm = @gsm AND (endDate = 0 OR endDate > UNIX_TIMESTAMP(UTC_TIMESTAMP()))));";
+            string query = "INSERT INTO Contracts (fullname, gsm, email, address, endDate, hours, salary, fonction) " +
+                            "SELECT * FROM (SELECT @fullName AS fullname, @gsm AS gsm, @email AS email, @address AS address, @endDate AS endDate, @hours AS hours, @salary AS salary, @job AS fonction) AS tmp " +
+                            "WHERE NOT EXISTS (SELECT 1 FROM contracts WHERE (gsm = @gsm AND (endDate = 0 OR endDate > UNIX_TIMESTAMP(UTC_TIMESTAMP()))));";
             return InsertData(query, parameters);
         }
 
         /// <summary>
-        /// Termine un contrat actif en mettant à jour la date de fin et supprime l'événement d'augmentation salariale associé.
+        /// Termine un contrat actif.
         /// </summary>
-        /// <returns>True si la mise à jour et la suppression de l'événement réussissent, false sinon.</returns>
+        /// <returns>True si la mise à jour réussit, false sinon.</returns>
         public bool EndContract()
         {
-            string query = "";
+            string query = "UPDATE Contracts SET endDate = UNIX_TIMESTAMP(UTC_TIMESTAMP()) WHERE contractorId = @contractorId;";
+            query += $"DROP EVENT IF EXISTS contract_{GSM.Replace(" ", "_")};";
+
             var parameters = new Dictionary<string, object>
             {
                 { "@contractorId", ContractorId }
             };
-            query = "UPDATE Contracts SET endDate = UNIX_TIMESTAMP(UTC_TIMESTAMP()) WHERE contractorId = @contractorId;";
-            query += $"DROP EVENT IF EXISTS contract_{GSM.Replace(" ", "_")};";
+
             return InsertData(query, parameters);
         }
     }

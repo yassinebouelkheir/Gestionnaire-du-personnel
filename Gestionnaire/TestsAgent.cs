@@ -1,4 +1,3 @@
-
 namespace Gestionnaire
 {
     public interface ITestsAgent

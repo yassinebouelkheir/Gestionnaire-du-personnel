@@ -28,6 +28,8 @@ namespace Gestionnaire
         {
             while (true)
             {
+                UpdateSalariesIfDue();
+
                 if (Config.productionRun)
                 {
                     Console.Clear();
@@ -387,7 +389,6 @@ namespace Gestionnaire
                         Methodes.PrintConsole(Config.sourceApplicationController, "2. Vider les tables de la base de donnée (sauf jobs et users)");
                         Methodes.PrintConsole(Config.sourceApplicationController, "3. Générer les salaires dans la table 'payments'");
                         Methodes.PrintConsole(Config.sourceApplicationController, "4. Télécharger tout les fiche de paie généré ce mois là (de la table 'payments')");
-                        Methodes.PrintConsole(Config.sourceApplicationController, "5. Générer une exception");
                         Methodes.PrintConsole(Config.sourceApplicationController, "5. Générer une exception");
                         Methodes.PrintConsole(Config.sourceApplicationController, "X. Revenir au menu principal");
                         string response = Methodes.ReadUserInput("Votre choix (1-X): ") ?? string.Empty;
@@ -1004,7 +1005,7 @@ namespace Gestionnaire
                                 if (totalcount == 9 && contract.Job == "Ouvrier")
                                 {
                                     Methodes.PrintConsole(Config.sourceApplicationController, "Remarque! Ce ouvrier va bénificer d'une 5% d'augmantation du salaire dès le prochain virement.");
-                                    contract.UpdateSalary(contract.Salary + (contract.Salary * 0.05));
+                                    contract.UpdateSalary(contract.Salary + (contract.Salary * 0.05), (int)DateTimeOffset.Now.ToUnixTimeSeconds());
                                 }
                                 else if (totalcount == 4 && contract.Job == "Employé")
                                 {
@@ -1439,6 +1440,56 @@ namespace Gestionnaire
             else
                 Methodes.PrintConsole(Config.sourceMethodes, "Erreur, Système d'explotation incompatible.", true);
         }
+
+        /// <summary>
+        /// Vérifie pour chaque contrat dans la liste des contrats si un ajustement salarial de +2% tous les 2 ans est dû,
+        /// puis met à jour le salaire si nécessaire.
+        /// </summary>
+        private static void UpdateSalariesIfDue()
+        {
+            Contracts contracts = new();
+
+            foreach (var row in contracts.ListContracts)
+            {
+                if (!int.TryParse(row["startDate"], out int startDate)) continue;
+                if (!double.TryParse(row["salary"], out double currentSalary)) continue;
+                if (!int.TryParse(row["contractorId"], out int contractorId)) continue;
+
+                int nowUnix = (int)DateTimeOffset.Now.ToUnixTimeSeconds();
+                int secondsPassed = nowUnix - startDate;
+                int yearsPassed = secondsPassed / (60 * 60 * 24 * 365);
+                int twoYearPeriods = yearsPassed / 2;
+
+                if (twoYearPeriods > 0)
+                {
+                    int lastUpdateUnix = 0;
+                    if (!int.TryParse(row["lastUpdateDate"], out lastUpdateUnix))
+                    {
+                        lastUpdateUnix = 0;
+                    }
+
+                    int lastUpdatePeriods = (lastUpdateUnix - startDate) / (60 * 60 * 24 * 365 * 2);
+
+                    if (twoYearPeriods > lastUpdatePeriods)
+                    {
+                        double expectedSalary = currentSalary;
+                        for (int i = lastUpdatePeriods; i < twoYearPeriods; i++)
+                        {
+                            expectedSalary *= 1.02;
+                        }
+                        expectedSalary = Math.Round(expectedSalary, 2);
+
+                        if (Math.Abs(expectedSalary - currentSalary) > 0.01)
+                        {
+                            var contractToUpdate = new Contracts(row["fullname"]);
+
+                            contractToUpdate.UpdateSalary(expectedSalary, nowUnix);
+                        }
+                    }
+                }
+            }
+        }
+
 
         /// <summary>
         /// Affiche un message invitant l'utilisateur à appuyer sur une touche pour revenir au menu précédent.
