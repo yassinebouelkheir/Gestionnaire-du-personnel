@@ -1,0 +1,14 @@
+[Gestionnaire::Methodes 03:51:05]: System.NullReferenceException: Object reference not set to an instance of an object.
+   at Gestionnaire.Methodes.GetPaymentsForCurrentMonth(Int32 contractorId) in /Users/mac/Documents/GitHub/Gestionnaire-du-personnel/Gestionnaire/Methodes.cs:line 376
+   at Gestionnaire.Methodes.GenerateAndZipPayslips(Int32 contractorId) in /Users/mac/Documents/GitHub/Gestionnaire-du-personnel/Gestionnaire/Methodes.cs:line 224
+
+[Gestionnaire::Methodes 03:51:05]: System.NullReferenceException: Object reference not set to an instance of an object.
+   at Gestionnaire.Methodes.GetPaymentsForCurrentMonth(Int32 contractorId) in /Users/mac/Documents/GitHub/Gestionnaire-du-personnel/Gestionnaire/Methodes.cs:line 376
+   at Gestionnaire.Methodes.GenerateAndZipPayslips(Int32 contractorId) in /Users/mac/Documents/GitHub/Gestionnaire-du-personnel/Gestionnaire/Methodes.cs:line 224
+
+[Gestionnaire::TestSource 03:51:05]: Message test avec exit
+
+[Gestionnaire::TestSource 03:51:59]: Message test avec exit
+
+[Gestionnaire::TestSource 03:57:12]: Message test avec exit
+
